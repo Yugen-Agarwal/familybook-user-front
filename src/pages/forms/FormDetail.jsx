@@ -1,25 +1,35 @@
-import { Lock } from 'lucide-react';
+import { Lock, Hash, Type } from 'lucide-react';
+
+const TYPE_ICONS = {
+  text: Type,
+  number: Hash,
+};
 
 export default function FormDetail({ form }) {
   return (
     <div className="space-y-5">
-      {form.description && <p className="text-gray-500 text-sm">{form.description}</p>}
+      {form.description && (
+        <p className="text-gray-500 text-sm bg-gray-50 px-4 py-3 rounded-xl">{form.description}</p>
+      )}
       {form.sections?.map((section, i) => (
-        <div key={i} className="border rounded-xl overflow-hidden">
-          <div className="bg-gray-50 px-4 py-2 border-b">
-            <h3 className="font-medium text-sm">{section.sectionName}</h3>
+        <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+            <h3 className="font-semibold text-sm text-gray-800">{section.sectionName}</h3>
           </div>
-          <div className="divide-y">
+          <div className="divide-y divide-gray-50">
             {section.fields?.map((field, j) => (
-              <div key={j} className="px-4 py-3 flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  {field.encrypted && <Lock size={13} className="text-amber-500" />}
-                  <span className="font-medium">{field.label}</span>
-                  <span className="text-gray-400 text-xs">({field.key})</span>
+              <div key={j} className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  {field.encrypted && <Lock size={13} className="text-amber-500 flex-shrink-0" />}
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{field.label}</p>
+                    <p className="text-xs text-gray-400 font-mono">{field.key}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span className="badge bg-gray-100 text-gray-600">{field.type}</span>
-                  {field.required && <span className="badge bg-red-50 text-red-600">required</span>}
+                <div className="flex items-center gap-2">
+                  <span className="badge badge-gray">{field.type}</span>
+                  {field.required && <span className="badge badge-red">required</span>}
+                  {field.encrypted && <span className="badge badge-yellow">encrypted</span>}
                 </div>
               </div>
             ))}

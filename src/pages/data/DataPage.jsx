@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { dataApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
-import { Plus, Pencil, Trash2, Database, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Database, Search, SlidersHorizontal } from 'lucide-react';
 import Spinner from '../../components/ui/Spinner';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -11,6 +11,14 @@ import Pagination from '../../components/ui/Pagination';
 import EmptyState from '../../components/ui/EmptyState';
 import DataForm from './DataForm';
 import DataDetail from './DataDetail';
+
+const CATEGORY_COLORS = {
+  family:    'bg-violet-100 text-violet-700',
+  assets:    'bg-amber-100 text-amber-700',
+  insurance: 'bg-blue-100 text-blue-700',
+  documents: 'bg-emerald-100 text-emerald-700',
+  general:   'bg-gray-100 text-gray-600',
+};
 
 export default function DataPage() {
   const { user } = useAuthStore();
@@ -44,9 +52,13 @@ export default function DataPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Family Data</h1>
+        <div>
+          <h1 className="page-title">Family Data</h1>
+          <p className="page-subtitle">Manage your encrypted family records</p>
+        </div>
         {!isViewer && (
           <button className="btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
             <Plus size={16} /> Add Entry
@@ -54,27 +66,36 @@ export default function DataPage() {
         )}
       </div>
 
+      {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            className="input pl-9"
-            placeholder="Search by category..."
+            className="input input-icon"
+            placeholder="Search entries…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <select className="input w-auto" value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }}>
-          <option value="">All categories</option>
-          <option value="family">Family</option>
-          <option value="assets">Assets</option>
-          <option value="insurance">Insurance</option>
-          <option value="documents">Documents</option>
-          <option value="general">General</option>
-        </select>
+        <div className="relative">
+          <SlidersHorizontal size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <select
+            className="input input-icon w-auto pr-4 appearance-none cursor-pointer"
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+          >
+            <option value="">All categories</option>
+            <option value="family">Family</option>
+            <option value="assets">Assets</option>
+            <option value="insurance">Insurance</option>
+            <option value="documents">Documents</option>
+            <option value="general">General</option>
+          </select>
+        </div>
       </div>
 
-      <div className="card p-0 overflow-hidden">
+      {/* Table */}
+      <div className="table-wrapper">
         {isLoading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : records.length === 0 ? (
@@ -82,41 +103,56 @@ export default function DataPage() {
             icon={Database}
             title="No entries yet"
             description="Start adding your family data"
-            action={!isViewer && <button className="btn-primary" onClick={() => setShowForm(true)}><Plus size={16} /> Add Entry</button>}
+            action={!isViewer && (
+              <button className="btn-primary" onClick={() => setShowForm(true)}>
+                <Plus size={16} /> Add Entry
+              </button>
+            )}
           />
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+          <table className="w-full">
+            <thead>
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Category</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Created</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Updated</th>
-                <th className="px-4 py-3" />
+                <th className="th">Category</th>
+                <th className="th hidden md:table-cell">Created</th>
+                <th className="th hidden md:table-cell">Updated</th>
+                <th className="th w-20" />
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-gray-50">
               {records.map((r) => (
-                <tr key={r._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <button className="font-medium text-brand hover:underline capitalize" onClick={() => setViewing(r)}>
-                      {r.category}
+                <tr key={r._id} className="tr-hover">
+                  <td className="td">
+                    <button
+                      className="flex items-center gap-2.5 group"
+                      onClick={() => setViewing(r)}
+                    >
+                      <span className={`badge ${CATEGORY_COLORS[r.category] || 'badge-gray'} capitalize`}>
+                        {r.category}
+                      </span>
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
+                  <td className="td text-gray-400 hidden md:table-cell">
                     {new Date(r.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
+                  <td className="td text-gray-400 hidden md:table-cell">
                     {new Date(r.updatedAt).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 justify-end">
+                  <td className="td">
+                    <div className="flex items-center gap-1 justify-end">
                       {!isViewer && (
                         <>
-                          <button className="p-1.5 rounded hover:bg-gray-100 text-gray-500" onClick={() => { setEditing(r); setShowForm(true); }}>
-                            <Pencil size={15} />
+                          <button
+                            className="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand transition-colors"
+                            onClick={() => { setEditing(r); setShowForm(true); }}
+                          >
+                            <Pencil size={14} />
                           </button>
-                          <button className="p-1.5 rounded hover:bg-red-50 text-red-500" onClick={() => setDeleting(r._id)}>
-                            <Trash2 size={15} />
+                          <button
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            onClick={() => setDeleting(r._id)}
+                          >
+                            <Trash2 size={14} />
                           </button>
                         </>
                       )}
@@ -131,7 +167,7 @@ export default function DataPage() {
 
       <Pagination page={page} pages={pagination?.pages || 1} onPage={setPage} />
 
-      <Modal open={showForm} onClose={() => { setShowForm(false); setEditing(null); }} title={editing ? 'Edit Entry' : 'Add Entry'} size="lg">
+      <Modal open={showForm} onClose={() => { setShowForm(false); setEditing(null); }} title={editing ? 'Edit Entry' : 'New Entry'} size="lg">
         <DataForm
           initial={editing}
           onSuccess={() => { setShowForm(false); setEditing(null); qc.invalidateQueries({ queryKey: ['data'] }); }}

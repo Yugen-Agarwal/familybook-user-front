@@ -6,14 +6,12 @@ import RegisterPage from './pages/auth/RegisterPage';
 import VerifyOtpPage from './pages/auth/VerifyOtpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import ViewerLoginPage from './pages/auth/ViewerLoginPage';
-
 import DashboardLayout from './layouts/DashboardLayout';
 import DashboardPage from './pages/dashboard/DashboardPage';
-import DataPage from './pages/data/DataPage';
 import FormsPage from './pages/forms/FormsPage';
 import ViewersPage from './pages/viewers/ViewersPage';
 import ProfilePage from './pages/profile/ProfilePage';
+import ActivityPage from './pages/activity/ActivityPage';
 
 const PrivateRoute = ({ children }) => {
   const { token } = useAuthStore();
@@ -29,7 +27,6 @@ export default function App() {
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/viewer/login" element={<ViewerLoginPage />} />
 
       <Route
         path="/"
@@ -41,9 +38,9 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="data" element={<DataPage />} />
         <Route path="forms" element={<FormsPage />} />
         <Route path="viewers" element={<ViewersPage />} />
+        <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
