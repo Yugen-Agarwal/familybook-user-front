@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 
 const TYPE_CONFIG = {
   viewer: {
-    label: 'Viewer',
+    label: 'Nominee',
     desc:  'Read-only access',
     color: 'bg-gray-100 text-gray-600',
     border: 'border-gray-200',
@@ -97,7 +97,7 @@ function ViewerForm({ viewer, onSuccess }) {
         <label className="label">Email address</label>
         <div className="relative">
           <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input className="input input-icon" type="email" placeholder="visitor@example.com"
+          <input className="input input-icon" type="email" placeholder="nominee@example.com"
             {...register('email', {
               pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' },
             })} />
@@ -184,8 +184,8 @@ export default function ViewersPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title text-gray-900">Access Credentials</h1>
-          <p className="page-subtitle">Manage who can access your family data</p>
+          <h1 className="page-title text-gray-900">Nominee Credentials</h1>
+          <p className="page-subtitle">Manage who can automatically inherit access to your family data</p>
         </div>
         <button 
           className="btn-primary" 
@@ -211,8 +211,8 @@ export default function ViewersPage() {
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : viewers.length === 0 ? (
-        <EmptyState icon={Users} title="No credentials yet"
-          description="Create credentials to share access to your family data"
+        <EmptyState icon={Users} title="No nominees yet"
+          description="Create credentials for nominees to securely view your family data later"
           action={<button className="btn-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> Create Credential</button>} />
       ) : (
         <div className="table-wrapper">
@@ -221,7 +221,6 @@ export default function ViewersPage() {
               <tr>
                 <th className="th">Name</th>
                 <th className="th">Contact</th>
-                <th className="th">Type</th>
                 <th className="th hidden md:table-cell">Created</th>
                 <th className="th">Status</th>
                 <th className="th w-28 text-center">Actions</th>
@@ -239,15 +238,6 @@ export default function ViewersPage() {
                     <td className="td">
                       <p className="text-sm text-gray-700">{v.email || '—'}</p>
                       <p className="text-[10px] text-gray-400">{v.mobile || '—'}</p>
-                    </td>
-
-                    {/* Type with change button */}
-                    <td className="td">
-                      <div className="flex items-center gap-2">
-                        <span className={`badge ${cfg.color} flex items-center gap-1`}>
-                          <Icon size={11} /> {cfg.label}
-                        </span>
-                      </div>
                     </td>
 
                     <td className="td text-gray-400 text-xs hidden md:table-cell">
@@ -290,11 +280,11 @@ export default function ViewersPage() {
         </div>
       )}
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create Access Credential" size="sm">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create Nominee Credential" size="sm">
         <ViewerForm onSuccess={() => { qc.invalidateQueries({ queryKey: ['viewers'] }); setShowCreate(false); }} />
       </Modal>
 
-      <Modal open={!!editingViewer} onClose={() => setEditingViewer(null)} title="Edit Access Credential" size="sm">
+      <Modal open={!!editingViewer} onClose={() => setEditingViewer(null)} title="Edit Nominee Credential" size="sm">
         <ViewerForm viewer={editingViewer} onSuccess={() => { qc.invalidateQueries({ queryKey: ['viewers'] }); setEditingViewer(null); }} />
       </Modal>
 

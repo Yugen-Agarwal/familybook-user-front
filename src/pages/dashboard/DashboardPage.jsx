@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dataApi, viewerApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
-import { Users, ArrowUpRight, Activity, LogIn, KeyRound, Share2, Database, ShieldCheck, Clock, ChevronRight } from 'lucide-react';
+import {
+  Users, ArrowUpRight, Activity, LogIn, KeyRound,
+  Share2, Database, ShieldCheck, Clock, ChevronRight,
+  CalendarDays, X,
+} from 'lucide-react';
 import Spinner from '../../components/ui/Spinner';
 import { Link } from 'react-router-dom';
 
@@ -27,38 +32,111 @@ function timeAgo(date) {
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const [startDate, setStartDate] = useState('');
+  const [endDate,   setEndDate]   = useState('');
+
+  const dateParams = {
+    ...(startDate && { startDate }),
+    ...(endDate   && { endDate }),
+  };
+  const hasFilter = !!(startDate || endDate);
 
   const { data: viewersRes } = useQuery({
     queryKey: ['viewers'],
-    queryFn: viewerApi.list,
-    enabled: user?.role === 'user',
+    queryFn:  viewerApi.list,
+    enabled:  user?.role === 'user',
   });
 
   const { data: activityRes, isLoading: loadingActivity } = useQuery({
-    queryKey: ['user-activity-recent'],
-    queryFn: () => dataApi.getActivity({ page: 1, limit: 6 }),
-    enabled: user?.role === 'user',
+    queryKey: ['user-activity-recent', dateParams],
+    queryFn:  () => dataApi.getActivity({ page: 1, limit: 6, ...dateParams }),
+    enabled:  user?.role === 'user',
   });
 
-  const viewers  = viewersRes?.data?.data || [];
+  const viewers  = viewersRes?.data?.data  || [];
   const activity = activityRes?.data?.data || [];
 
   return (
     <div className="space-y-6">
 
       {/* Header */}
-      <div>
-        <h1 className="page-title">
-          {user?.role === 'viewer' || user?.role === 'owner'
-            ? 'Shared Access'
-            : `Good to see you, ${user?.name?.split(' ')[0] || 'there'} 👋`}
-        </h1>
-        <p className="page-subtitle">
-          {user?.role === 'viewer' ? 'Read-only access to shared family data'
-           : user?.role === 'owner' ? 'Full access to shared family data'
-           : "Here's your Family Book overview"}
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="page-title">
+            {user?.role === 'viewer' || user?.role === 'owner'
+              ? 'Shared Access'
+              : `Good to see you, ${user?.name?.split(' ')[0] || 'there'} 👋`}
+          </h1>
+          <p className="page-subtitle">
+            {user?.role === 'viewer' ? 'Read-only access to shared family data'
+             : user?.role === 'owner' ? 'Full access to shared family data'
+             : "Here's your Family Book overview"}
+          </p>
+        </div>
       </div>
+
+      {/* Date filter — user only */}
+      {user?.role === 'user' && (
+        <div
+          className="bg-white rounded-2xl border p-4 flex flex-wrap items-center gap-3 transition-all duration-200"
+          style={{
+            borderColor: hasFilter ? '#c7d2fe' : '#f3f4f6',
+            boxShadow:   hasFilter ? '0 0 0 3px rgb(99 102 241/.07)' : '0 1px 3px rgb(0 0 0/.05)',
+          }}
+        >
+          {/* icon + label */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: hasFilter ? 'linear-gradient(135deg,#6366f1,#818cf8)' : '#f4f6fb' }}>
+              <CalendarDays size={14} style={{ color: hasFilter ? '#fff' : '#9ca3af' }} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Date Range</span>
+            {hasFilter && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#4338ca' }}>
+                Active
+              </span>
+            )}
+          </div>
+
+          <div className="hidden sm:block w-px h-5 bg-gray-100" />
+
+          {/* inputs */}
+          <div className="flex flex-wrap items-center gap-3 flex-1">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-gray-400 whitespace-nowrap">From</label>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={e => setStartDate(e.target.value)}
+                className="input py-1.5 text-sm w-auto"
+                style={{ minWidth: 140 }}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-gray-400 whitespace-nowrap">To</label>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={e => setEndDate(e.target.value)}
+                className="input py-1.5 text-sm w-auto"
+                style={{ minWidth: 140 }}
+              />
+            </div>
+          </div>
+
+          {hasFilter && (
+            <button
+              onClick={() => { setStartDate(''); setEndDate(''); }}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl border border-red-100 text-red-400 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all duration-150"
+            >
+              <X size={12} /> Clear
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Quick stats — user only */}
       {user?.role === 'user' && (
@@ -87,8 +165,12 @@ export default function DashboardPage() {
               <Activity size={20} className="text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-2xl font-bold text-gray-900">{activityRes?.data?.pagination?.total ?? '—'}</p>
-              <p className="text-sm text-gray-500 mt-0.5">Total Events</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loadingActivity ? '…' : (activityRes?.data?.pagination?.total ?? '—')}
+              </p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {hasFilter ? 'Events in range' : 'Total Events'}
+              </p>
             </div>
             <ArrowUpRight size={16} className="text-gray-300 group-hover:text-indigo-500 transition-colors" />
           </Link>
@@ -101,7 +183,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-semibold text-gray-900">Recent Activity</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Latest events on your account</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {hasFilter ? 'Filtered by selected date range' : 'Latest events on your account'}
+              </p>
             </div>
             <Link to="/activity"
               className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
@@ -116,11 +200,21 @@ export default function DashboardPage() {
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
                 <Clock size={20} className="text-indigo-300" />
               </div>
-              <p className="text-gray-400 text-sm">No activity yet</p>
+              <p className="text-gray-400 text-sm">
+                {hasFilter ? 'No activity in this date range' : 'No activity yet'}
+              </p>
+              {hasFilter && (
+                <button
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  className="mt-3 text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors"
+                >
+                  Clear filter
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-1">
-              {activity.map((log) => {
+              {activity.map(log => {
                 const cfg  = TYPE_CONFIG[log.type] || { label: log.type, icon: Clock, color: 'bg-gray-100 text-gray-500' };
                 const Icon = cfg.icon;
                 return (

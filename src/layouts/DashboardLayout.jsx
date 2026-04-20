@@ -11,7 +11,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard',  icon: LayoutDashboard, roles: ['user', 'viewer', 'owner'] },
   { to: '/forms',     label: 'Forms',       icon: FileText,        roles: ['user', 'viewer', 'owner'] },
-  { to: '/viewers',   label: 'Viewers',     icon: Users,           roles: ['user', 'owner'] },
+  { to: '/viewers',   label: 'Nominees',    icon: Users,           roles: ['user', 'owner'] },
   { to: '/activity',  label: 'Activity',    icon: Activity,        roles: ['user', 'owner'] },
 ];
 
@@ -181,8 +181,16 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-5 md:p-7">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col justify-between">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          
+          <footer className="mt-8 border-t border-gray-100 pt-4 pb-2 flex items-center justify-center gap-1.5">
+            <span className="text-[10px] text-gray-400">Developed by <a href="https://itfuturz.in/#/home" target="_blank" rel="noopener noreferrer" className="text-indigo-500 font-semibold hover:underline">IT Futurz</a></span>
+            <span className="text-gray-300 text-[10px]">·</span>
+            <span className="text-[10px] text-gray-400">Powered by <span className="font-semibold text-gray-600">Progress Alliance</span></span>
+          </footer>
         </main>
       </div>
 

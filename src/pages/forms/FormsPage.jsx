@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { formsApi, dataApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
-import { FileText, ClipboardList, Table2, Pencil, Plus, Trash2, Settings, Eye, User } from 'lucide-react';
+import { FileText, ClipboardList, Table2, Pencil, Plus, Trash2, Settings, Eye, Search } from 'lucide-react';
 import Spinner from '../../components/ui/Spinner';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -65,6 +65,7 @@ export default function FormsPage() {
   const [building,  setBuilding]  = useState(false);
   const [editingForm, setEditingForm] = useState(null);
   const [deletingForm, setDeletingForm] = useState(null);
+  const [search, setSearch] = useState('');
 
   const { data: adminFormsRes, isLoading: loadingAdmin } = useQuery({
     queryKey: ['forms'],
@@ -87,6 +88,10 @@ export default function FormsPage() {
   const myForms    = myFormsRes?.data?.data    || [];
   const submissions = submissionsRes?.data?.data || [];
 
+  const q = search.trim().toLowerCase();
+  const filteredAdmin = q ? adminForms.filter(f => f.title?.toLowerCase().includes(q) || f.description?.toLowerCase().includes(q)) : adminForms;
+  const filteredMy    = q ? myForms.filter(f =>    f.title?.toLowerCase().includes(q) || f.description?.toLowerCase().includes(q)) : myForms;
+
   const submissionMap = {};
   submissions.forEach(s => { if (s.formId) submissionMap[s.formId.toString()] = s; });
 
@@ -100,18 +105,31 @@ export default function FormsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">Forms</h1>
           <p className="page-subtitle">Fill forms or create your own</p>
         </div>
-        {!isViewer && (
-          <button onClick={() => setBuilding(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
-            <Plus size={16} /> Create My Form
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search forms..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="input input-icon py-2 text-sm"
+              style={{ minWidth: 200 }}
+            />
+          </div>
+          {!isViewer && (
+            <button onClick={() => setBuilding(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
+              <Plus size={16} /> Create My Form
+            </button>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
@@ -119,11 +137,11 @@ export default function FormsPage() {
       ) : (
         <>
           {/* Admin forms */}
-          {adminForms.length > 0 && (
+          {filteredAdmin.length > 0 && (
             <div className="space-y-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">From Administrator</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {adminForms.map(form => (
+                {filteredAdmin.map(form => (
                   <FormCard key={form._id} form={form} existing={submissionMap[form._id?.toString()]}
                     isOwned={false} isViewer={isViewer}
                     onFill={() => setFilling({ form, existing: submissionMap[form._id?.toString()] })} />
@@ -149,9 +167,11 @@ export default function FormsPage() {
                     <Plus size={14} /> Create My Form
                   </button>
                 </div>
+              ) : filteredMy.length === 0 ? (
+                <p className="text-sm text-gray-400 py-4">No personal forms match your search.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {myForms.map(form => (
+                  {filteredMy.map(form => (
                     <FormCard key={form._id} form={form} existing={submissionMap[form._id?.toString()]}
                       isOwned={true} isViewer={isViewer}
                       onFill={() => setFilling({ form, existing: submissionMap[form._id?.toString()] })}
@@ -163,7 +183,11 @@ export default function FormsPage() {
             </div>
           )}
 
-          {adminForms.length === 0 && (isViewer || myForms.length === 0) && (
+          {filteredAdmin.length === 0 && (isViewer || filteredMy.length === 0) && (adminForms.length > 0 || myForms.length > 0) && (
+            <p className="text-sm text-gray-400 text-center py-8">No forms match "{search}"</p>
+          )}
+
+          {adminForms.length === 0 && (isViewer || myForms.length === 0) && !search && (
             <EmptyState icon={FileText} title="No forms available" description="No forms yet" />
           )}
         </>

@@ -18,8 +18,8 @@ function CredentialsStep({ onOTPSent }) {
     mutationFn: authApi.login,
     onSuccess: ({ data }) => {
       if (data.data.requiresOTP) {
-        toast.success(`OTP sent to your registered email/mobile`);
-        onOTPSent(data.data.userId);
+        toast.success(`OTP sent to your ${loginMethod === 'email' ? 'email' : 'mobile'}`);
+        onOTPSent(data.data.userId, loginMethod);
       }
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Login failed'),
@@ -123,7 +123,7 @@ function CredentialsStep({ onOTPSent }) {
 }
 
 // ── Step 2: OTP Verify ────────────────────────────────
-function OTPStep({ userId, onBack }) {
+function OTPStep({ userId, channel, onBack }) {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
   const [timer, setTimer] = useState(0);
@@ -148,7 +148,7 @@ function OTPStep({ userId, onBack }) {
   });
 
   const resendMutation = useMutation({
-    mutationFn: () => authApi.resendOtp({ userId, purpose: 'login' }),
+    mutationFn: () => authApi.resendOtp({ userId, purpose: 'login', channel }),
     onSuccess: () => {
       toast.success('New OTP sent');
       setTimer(30);
@@ -162,8 +162,12 @@ function OTPStep({ userId, onBack }) {
       <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-100 px-4 py-3.5 rounded-xl">
         <ShieldCheck size={16} className="text-indigo-500 mt-0.5 flex-shrink-0" />
         <div>
-          <p className="text-sm font-semibold text-indigo-800">Check your email / mobile</p>
-          <p className="text-xs text-indigo-600 mt-0.5">We've sent a 6-digit OTP to verify your login</p>
+          <p className="text-sm font-semibold text-indigo-800">
+            Check your {channel === 'mobile' ? 'mobile' : 'email'}
+          </p>
+          <p className="text-xs text-indigo-600 mt-0.5">
+            We've sent a 6-digit OTP to verify your login via {channel === 'mobile' ? 'SMS' : 'email'}
+          </p>
         </div>
       </div>
 
@@ -214,22 +218,26 @@ function OTPStep({ userId, onBack }) {
 
 // ── Main LoginPage ────────────────────────────────────
 export default function LoginPage() {
-  const [step, setStep]           = useState('credentials'); // 'credentials' | 'otp'
-  const [userId, setUserId]       = useState(null);
+  const [step, setStep]       = useState('credentials');
+  const [userId, setUserId]   = useState(null);
+  const [channel, setChannel] = useState('email'); // 'email' | 'mobile'
 
-  const handleOTPSent = (uid) => {
+  const handleOTPSent = (uid, ch) => {
     setUserId(uid);
+    setChannel(ch);
     setStep('otp');
   };
 
   return (
     <AuthLayout
       title={step === 'otp' ? 'Verify your identity' : 'Welcome back'}
-      subtitle={step === 'otp' ? 'Enter the OTP sent to your email/mobile' : 'Sign in to your Family Book account'}
+      subtitle={step === 'otp'
+        ? `Enter the OTP sent to your ${channel === 'mobile' ? 'mobile number' : 'email'}`
+        : 'Sign in to your Family Book account'}
     >
       {step === 'credentials'
         ? <CredentialsStep onOTPSent={handleOTPSent} />
-        : <OTPStep userId={userId} onBack={() => setStep('credentials')} />
+        : <OTPStep userId={userId} channel={channel} onBack={() => setStep('credentials')} />
       }
     </AuthLayout>
   );

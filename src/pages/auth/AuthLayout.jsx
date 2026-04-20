@@ -3,7 +3,7 @@ import familyBg from '../../assets/family-bg.jpg';
 
 export default function AuthLayout({ title, subtitle, children }) {
   return (
-    <div className="min-h-screen flex selection:bg-indigo-100">
+    <div className="h-screen flex overflow-hidden selection:bg-indigo-100">
 
       {/* ── Left panel ── */}
       <div className="hidden md:flex md:w-[55%] flex-col justify-between p-12 relative overflow-hidden">
@@ -22,7 +22,7 @@ export default function AuthLayout({ title, subtitle, children }) {
         <div className="relative z-10 space-y-8">
           <div>
             <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest mb-3">Trusted by families</p>
-            <h2 className="text-white text-4xl font-bold leading-tight mb-4">Your family's memories,<br />secured forever.</h2>
+            <h2 className="text-white text-4xl font-bold leading-tight mb-4">Your family's information,<br />secured forever.</h2>
             <p className="text-indigo-200 text-base leading-relaxed max-w-sm">Store, organize, and share your family's most important data — all in one beautifully secure place.</p>
           </div>
           <div className="space-y-3">
@@ -41,11 +41,16 @@ export default function AuthLayout({ title, subtitle, children }) {
           </div>
         </div>
 
-        <p className="relative z-10 text-indigo-300 text-xs">© {new Date().getFullYear()} Family Book. All rights reserved.</p>
+        <div className="relative z-10 flex flex-col gap-1 mt-10">
+          <p className="text-indigo-300 text-xs">
+            Developed by <a href="https://itfuturz.in/#/home" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-bold transition-colors">IT Futurz</a>
+          </p>
+          <p className="text-indigo-300/60 text-[10px]">© 2026 Family Vault. All rights reserved.</p>
+        </div>
       </div>
 
       {/* ── Right panel ── */}
-      <div className="flex-1 flex flex-col min-h-screen relative" style={{ background: 'linear-gradient(145deg, #f0f1ff 0%, #f8f9ff 50%, #eef2ff 100%)' }}>
+      <div className="flex-1 flex flex-col relative" style={{ background: 'linear-gradient(145deg, #f0f1ff 0%, #f8f9ff 50%, #eef2ff 100%)' }}>
 
         {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.08), transparent 70%)', transform: 'translate(30%, -30%)' }} />
@@ -79,10 +84,12 @@ export default function AuthLayout({ title, subtitle, children }) {
               {children}
             </div>
 
-            {/* Bottom tagline */}
-            <p className="text-center text-xs text-gray-400 mt-6">
-              🔒 Your data is encrypted and secure
-            </p>
+            {/* Bottom branding */}
+            <div className="mt-6 flex items-center justify-center gap-1.5">
+              <span className="text-[10px] text-gray-400">Developed by <a href="https://itfuturz.in/#/home" target="_blank" rel="noopener noreferrer" className="text-indigo-500 font-semibold hover:underline">IT Futurz</a></span>
+              <span className="text-gray-300 text-[10px]">·</span>
+              <span className="text-[10px] text-gray-400">Powered by <span className="font-semibold text-gray-600">Progress Alliance</span></span>
+            </div>
           </div>
         </div>
       </div>

@@ -84,56 +84,127 @@ function ChangeWithPassword({ onDone }) {
 }
 
 function ChangeWithOTP({ user, onDone }) {
-  const [step, setStep] = useState('send');
-  const [showNew, setShowNew] = useState(false);
+  const hasBoth   = !!(user?.mobile && user?.email);
+  const [channel, setChannel]     = useState(user?.mobile ? 'mobile' : 'email');
+  const [step, setStep]           = useState('send');
+  const [showNew, setShowNew]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [timer, setTimer] = useState(0);
+  const [timer, setTimer]         = useState(0);
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
 
   useEffect(() => {
     let interval;
-    if (timer > 0) {
-      interval = setInterval(() => setTimer(t => t - 1), 1000);
-    }
+    if (timer > 0) interval = setInterval(() => setTimer(t => t - 1), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
   const sendMutation = useMutation({
     mutationFn: (payload) => authApi.forgotPassword(payload),
-    onSuccess: () => { 
-      toast.success('OTP sent!'); 
-      setStep('verify'); 
-      setTimer(30);
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to send OTP'),
+    onSuccess: () => { toast.success('OTP sent!'); setStep('verify'); setTimer(30); },
+    onError:   (err) => toast.error(err.response?.data?.message || 'Failed to send OTP'),
   });
 
   const resendMutation = useMutation({
     mutationFn: () => authApi.resendOtp({ userId: user?.id, purpose: 'reset' }),
-    onSuccess: () => {
-      toast.success('New OTP sent');
-      setTimer(30);
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Could not resend OTP'),
+    onSuccess: () => { toast.success('New OTP sent'); setTimer(30); },
+    onError:   (err) => toast.error(err.response?.data?.message || 'Could not resend OTP'),
   });
 
   const resetMutation = useMutation({
     mutationFn: authApi.resetPassword,
     onSuccess: () => { toast.success('Password changed!'); onDone(); },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
+    onError:   (err) => toast.error(err.response?.data?.message || 'Failed'),
   });
+
+  const handleSend = () => {
+    const payload = channel === 'mobile' ? { mobile: user.mobile } : { email: user.email };
+    sendMutation.mutate(payload);
+  };
 
   if (step === 'send') return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-100 px-4 py-3 rounded-xl">
-        <ShieldCheck size={15} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-        <p className="text-xs text-indigo-700">OTP will be sent to your <span className="font-semibold">{user?.mobile ? `mobile (${user.mobile})` : `email (${user?.email})`}</span></p>
-      </div>
+
+      {/* Channel selector — only shown when user has both */}
+      {hasBoth ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Send OTP via</p>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Mobile option */}
+            <button
+              type="button"
+              onClick={() => setChannel('mobile')}
+              className="flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-150 text-left"
+              style={{
+                borderColor:     channel === 'mobile' ? '#6366f1' : '#e5e7eb',
+                backgroundColor: channel === 'mobile' ? '#eef2ff' : '#fff',
+                boxShadow:       channel === 'mobile' ? '0 0 0 3px rgba(99,102,241,0.12)' : '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: channel === 'mobile' ? 'linear-gradient(135deg,#6366f1,#818cf8)' : '#f3f4f6' }}>
+                <Phone size={15} style={{ color: channel === 'mobile' ? '#fff' : '#9ca3af' }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: channel === 'mobile' ? '#4338ca' : '#374151' }}>Mobile</p>
+                <p className="text-[11px] text-gray-400 truncate">{user.mobile}</p>
+              </div>
+              {channel === 'mobile' && (
+                <div className="ml-auto w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#6366f1' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              )}
+            </button>
+
+            {/* Email option */}
+            <button
+              type="button"
+              onClick={() => setChannel('email')}
+              className="flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-150 text-left"
+              style={{
+                borderColor:     channel === 'email' ? '#6366f1' : '#e5e7eb',
+                backgroundColor: channel === 'email' ? '#eef2ff' : '#fff',
+                boxShadow:       channel === 'email' ? '0 0 0 3px rgba(99,102,241,0.12)' : '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: channel === 'email' ? 'linear-gradient(135deg,#6366f1,#818cf8)' : '#f3f4f6' }}>
+                <Mail size={15} style={{ color: channel === 'email' ? '#fff' : '#9ca3af' }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: channel === 'email' ? '#4338ca' : '#374151' }}>Email</p>
+                <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
+              </div>
+              {channel === 'email' && (
+                <div className="ml-auto w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#6366f1' }}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Single channel — just show info */
+        <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-100 px-4 py-3 rounded-xl">
+          <ShieldCheck size={15} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+          <div className="text-xs text-indigo-700">
+            <p className="font-semibold mb-0.5">OTP will be sent to:</p>
+            {user?.mobile
+              ? <p className="flex items-center gap-1.5"><Phone size={11} /> {user.mobile}</p>
+              : <p className="flex items-center gap-1.5"><Mail  size={11} /> {user.email}</p>
+            }
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-3">
-        <button onClick={() => sendMutation.mutate(user?.mobile ? { mobile: user.mobile } : { email: user?.email })}
+        <button
+          onClick={handleSend}
           disabled={sendMutation.isPending}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
+          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}
+        >
           {sendMutation.isPending ? 'Sending…' : <><ArrowRight size={15} /> Send OTP</>}
         </button>
         <button className="btn-secondary" onClick={onDone}>Cancel</button>
@@ -145,7 +216,9 @@ function ChangeWithOTP({ user, onDone }) {
     <form onSubmit={handleSubmit(d => resetMutation.mutate({ userId: user?.id, otp: d.otp, newPassword: d.newPassword }))} className="space-y-4">
       <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3.5 py-2.5 rounded-xl">
         <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />
-        <p className="text-xs text-emerald-700">OTP sent! Check your {user?.mobile ? 'mobile' : 'email'}.</p>
+        <p className="text-xs text-emerald-700">
+          OTP sent to your {channel === 'mobile' ? `mobile (${user?.mobile})` : `email (${user?.email})`}.
+        </p>
       </div>
       <div>
         <div className="flex items-center justify-between mb-1">
@@ -368,7 +441,7 @@ export default function ProfilePage() {
                   },
                   {
                     key: 'otp', icon: MessageSquare, title: 'Send OTP',
-                    desc: `Verify via OTP sent to your ${user?.mobile ? 'mobile' : 'email'}`,
+                    desc: `Verify via OTP sent to your ${[user?.mobile && 'mobile', user?.email && 'email'].filter(Boolean).join(' & ') || 'registered contact'}`,
                     bg: 'linear-gradient(135deg,#10b981,#34d399)',
                     shadow: 'rgba(16,185,129,0.3)',
                   },
