@@ -206,22 +206,25 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {form.description && <p className="text-sm text-gray-500 bg-gray-50 px-4 py-3 rounded-xl">{form.description}</p>}
 
-      <div className="space-y-3">
-        {allFields.map(f => (
-          <div key={f.key} className="flex items-start gap-2">
-            <div className="flex-1">
-              <label className="label flex items-center gap-1.5">
-                <Lock size={10} className="text-amber-400" /> {f.label}
-              </label>
-              <FieldInput field={f} name={f.key} register={register} disabled={isViewer} />
+      <div className="space-y-0">
+        {allFields.map((f, i) => (
+          <div key={f.key}
+            className={`flex items-start gap-4 px-4 py-3 ${i % 2 === 0 ? 'bg-gray-50/60' : 'bg-white'} rounded-xl`}>
+            <label className="flex items-start gap-1.5 text-sm font-semibold text-gray-500 flex-shrink-0 w-60 pt-2.5">
+              <Lock size={10} className="text-amber-400 flex-shrink-0 mt-0.5" />
+              <span className="leading-snug">{f.label}</span>
+            </label>
+            <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1">
+                <FieldInput field={f} name={f.key} register={register} disabled={isViewer} />
+              </div>
+              {f.key.startsWith('_x_') && !isViewer && (
+                <button type="button" onClick={() => removeExtra(f.key)}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                  <Trash2 size={14} />
+                </button>
+              )}
             </div>
-            {/* Remove extra fields */}
-            {f.key.startsWith('_x_') && !isViewer && (
-              <button type="button" onClick={() => removeExtra(f.key)}
-                className="mt-6 p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
-                <Trash2 size={14} />
-              </button>
-            )}
           </div>
         ))}
       </div>

@@ -99,10 +99,15 @@ function ViewerForm({ viewer, onSuccess }) {
           <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input className="input input-icon" type="email" placeholder="nominee@example.com"
             {...register('email', {
-              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' },
+              validate: v => {
+                const mobile = watch('mobile');
+                if (!v && !mobile) return 'Email or mobile is required';
+                if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Invalid email address';
+                return true;
+              },
             })} />
         </div>
-        {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
+        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
       </div>
 
       {/* Mobile */}
@@ -110,31 +115,47 @@ function ViewerForm({ viewer, onSuccess }) {
         <label className="label">Mobile Number</label>
         <div className="relative">
           <RefreshCw size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input 
-            className="input input-icon" 
+          <input
+            className="input input-icon"
             placeholder="e.g. 9876543210"
             maxLength="10"
             {...register('mobile', {
-              pattern: { value: /^\d{10}$/, message: 'Must be exactly 10 digits' },
-            })} 
+              validate: v => {
+                const email = watch('email');
+                if (!v && !email) return 'Email or mobile is required';
+                if (v && !/^\d{10}$/.test(v)) return 'Must be exactly 10 digits';
+                return true;
+              },
+            })}
             onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10); }}
           />
         </div>
-        {errors.mobile && <p className="text-red-500 text-xs mt-1.5">{errors.mobile.message}</p>}
+        {errors.mobile && <p className="text-red-500 text-xs mt-1">{errors.mobile.message}</p>}
       </div>
 
       {/* Password */}
       <div>
         <label className="label">{isEdit ? 'New Password (keep blank to stay same)' : 'Password'}</label>
         <div className="relative">
-          <input className="input pr-10" type={showPass ? 'text' : 'password'} placeholder={isEdit ? 'Leave blank if not changing' : 'Set a password'}
-            {...register('password', { required: !isEdit && 'Password is required', minLength: { value: 6, message: 'Min 6 characters' } })} />
+          <input className="input pr-10" type={showPass ? 'text' : 'password'} placeholder={isEdit ? 'Leave blank if not changing' : 'Min 8 chars, uppercase, number & symbol'}
+            {...register('password', {
+              required: !isEdit && 'Password is required',
+              validate: v => {
+                if (!v && isEdit) return true; // blank = no change on edit
+                if (!v) return 'Password is required';
+                if (v.length < 8)            return 'Min 8 characters';
+                if (!/[A-Z]/.test(v))        return 'Must contain at least one uppercase letter';
+                if (!/[0-9]/.test(v))        return 'Must contain at least one number';
+                if (!/[^A-Za-z0-9]/.test(v)) return 'Must contain at least one special character';
+                return true;
+              },
+            })} />
           <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             onClick={() => setShowPass(!showPass)}>
             {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
-        {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>}
+        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
       </div>
 
       <button type="submit" className="btn-primary w-full" disabled={isPending}>

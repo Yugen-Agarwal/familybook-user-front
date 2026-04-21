@@ -16,7 +16,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import FormFiller from './FormFiller';
 import UserFormBuilder from './UserFormBuilder';
 
-function FormCard({ form, existing, isOwned, isViewer, onFill, onEdit, onDelete }) {
+function FormCard({ form, existing, isOwned, isViewer, onFill, onEdit, onDelete, onPreview }) {
   const hasData = !!existing;
   return (
     <div className="card flex flex-col" style={{ boxShadow: '0 1px 4px rgb(0 0 0/.05)' }}>
@@ -40,12 +40,20 @@ function FormCard({ form, existing, isOwned, isViewer, onFill, onEdit, onDelete 
           </div>
           {form.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{form.description}</p>}
         </div>
-        {isOwned && (
-          <div className="flex gap-1 flex-shrink-0">
-            <button onClick={onEdit} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-colors"><Settings size={14} /></button>
-            <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
-          </div>
-        )}
+        <div className="flex gap-1 flex-shrink-0">
+          {hasData && (
+            <button onClick={onPreview} title="Preview filled data"
+              className="p-1.5 rounded-lg hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 transition-colors">
+              <Eye size={14} />
+            </button>
+          )}
+          {isOwned && (
+            <>
+              <button onClick={onEdit} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-colors"><Settings size={14} /></button>
+              <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 mb-4">
@@ -70,6 +78,75 @@ function FormCard({ form, existing, isOwned, isViewer, onFill, onEdit, onDelete 
   );
 }
 
+/* ── Filled data preview modal content ─────────────── */
+function FilledDataPreview({ form, submission }) {
+  const data = submission?.data || {};
+  const fields = form?.fields || [];
+
+  // Table form — rows array
+  if (form?.formType === 'table') {
+    const rows = data.rows || [];
+    const cols = fields.map(f => ({ key: f.key, label: f.label }));
+    return (
+      <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+        {rows.length === 0 ? (
+          <p className="text-gray-400 text-sm text-center py-8">No rows submitted.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-100">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider w-8">#</th>
+                  {cols.map(c => (
+                    <th key={c.key} className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      {c.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {rows.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50/60">
+                    <td className="px-3 py-2.5 text-gray-300 text-xs">{i + 1}</td>
+                    {cols.map(c => (
+                      <td key={c.key} className="px-3 py-2.5 text-gray-700">
+                        {row[c.key] === null || row[c.key] === undefined || row[c.key] === ''
+                          ? <span className="text-gray-300">—</span>
+                          : String(row[c.key])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Record form — key-value
+  return (
+    <div className="space-y-0 max-h-[65vh] overflow-y-auto pr-1">
+      {fields.length === 0 ? (
+        <p className="text-gray-400 text-sm text-center py-8">No fields defined.</p>
+      ) : fields.map((f, i) => (
+        <div key={f.key}
+          className={`flex items-center justify-between gap-6 px-4 py-3 ${i % 2 === 0 ? 'bg-gray-50/60' : 'bg-white'} rounded-xl`}>
+          <p className="text-sm font-semibold text-gray-500 flex-shrink-0 min-w-[140px]">{f.label}</p>
+          <p className="text-sm text-gray-900 text-right break-words flex-1">
+            {data[f.key] === null || data[f.key] === undefined || data[f.key] === ''
+              ? <span className="text-gray-300 italic text-xs">—</span>
+              : typeof data[f.key] === 'boolean'
+                ? <span className={`badge text-xs ${data[f.key] ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>{data[f.key] ? 'Yes' : 'No'}</span>
+                : String(data[f.key])}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function FormsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
@@ -80,6 +157,7 @@ export default function FormsPage() {
   const [createdBy, setCreatedBy] = useState('');
   const [filledFilter, setFilled] = useState(''); // '' | 'filled' | 'unfilled'
   const [filling,   setFilling]   = useState(null);
+  const [previewing, setPreviewing] = useState(null); // { form, submission }
   const [building,  setBuilding]  = useState(false);
   const [editingForm, setEditingForm]   = useState(null);
   const [deletingForm, setDeletingForm] = useState(null);
@@ -224,6 +302,7 @@ export default function FormsPage() {
                 onFill={() => setFilling({ form, existing: submissionMap[form._id?.toString()] })}
                 onEdit={() => setEditingForm(form)}
                 onDelete={() => setDeletingForm(form._id)}
+                onPreview={() => setPreviewing({ form, submission: submissionMap[form._id?.toString()] })}
               />
             );
           })}
@@ -231,6 +310,12 @@ export default function FormsPage() {
       )}
 
       <Pagination page={page} pages={pagination?.pages || 1} total={pagination?.total} onPage={setPage} />
+
+      {/* Filled data preview */}
+      <Modal open={!!previewing} onClose={() => setPreviewing(null)}
+        title={previewing?.form?.title} size="lg">
+        {previewing && <FilledDataPreview form={previewing.form} submission={previewing.submission} />}
+      </Modal>
 
       {/* Fill modal */}
       <Modal open={!!filling} onClose={() => setFilling(null)} title={filling?.form?.title}
