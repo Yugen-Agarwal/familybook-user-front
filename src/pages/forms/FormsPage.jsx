@@ -3,8 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { formsApi, dataApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
-import { FileText, ClipboardList, Table2, Pencil, Plus, Trash2, Settings, Eye, Search } from 'lucide-react';
+import { useDebounce } from '../../hooks/useDebounce';
+import {
+  FileText, ClipboardList, Table2, Pencil,
+  Plus, Trash2, Settings, Eye, Search, SlidersHorizontal, X,
+} from 'lucide-react';
 import Spinner from '../../components/ui/Spinner';
+import Pagination from '../../components/ui/Pagination';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import EmptyState from '../../components/ui/EmptyState';
@@ -18,11 +23,20 @@ function FormCard({ form, existing, isOwned, isViewer, onFill, onEdit, onDelete 
       <div className="flex items-start gap-3 mb-3">
         <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg,#eef2ff,#e0e7ff)' }}>
-          {form.formType === 'table' ? <Table2 size={19} className="text-indigo-500" /> : <FileText size={19} className="text-indigo-500" />}
+          {form.formType === 'table'
+            ? <Table2 size={19} className="text-indigo-500" />
+            : <FileText size={19} className="text-indigo-500" />}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900 leading-tight truncate">{form.title}</h3>
+          <h3 className="font-semibold text-gray-900 leading-tight truncate">{form.title}</h3>
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            <span className={`badge text-[10px] ${form.formType === 'table' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'}`}>
+              {form.formType === 'table' ? '⊞ Table' : '☰ Record'}
+            </span>
+            {form.ownedBy
+              ? <span className="text-[10px] font-semibold bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">Mine</span>
+              : <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">Admin</span>
+            }
           </div>
           {form.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{form.description}</p>}
         </div>
@@ -35,22 +49,22 @@ function FormCard({ form, existing, isOwned, isViewer, onFill, onEdit, onDelete 
       </div>
 
       <div className="flex items-center gap-2 mb-4">
-        <span className={`badge text-[10px] ${form.formType === 'table' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'}`}>
-          {form.formType === 'table' ? '⊞ Table' : '☰ Record'}
-        </span>
         <span className="flex items-center gap-1 text-xs text-gray-400">
           <ClipboardList size={11} /> {form.fields?.length || 0} fields
         </span>
         {hasData && <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">Filled</span>}
       </div>
 
-      <button className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+      <button
+        className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
         style={hasData
           ? { background: 'linear-gradient(135deg,#eef2ff,#e0e7ff)', color: '#4338ca' }
           : { background: 'linear-gradient(135deg,#6366f1,#818cf8)', color: 'white', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }
         }
         onClick={onFill}>
-        {isViewer ? <><Eye size={14} /> View Details</> : (hasData ? <><Pencil size={14} /> Update</> : <><Plus size={14} /> Fill Form</>)}
+        {isViewer
+          ? <><Eye size={14} /> View Details</>
+          : hasData ? <><Pencil size={14} /> Update</> : <><Plus size={14} /> Fill Form</>}
       </button>
     </div>
   );
@@ -61,21 +75,26 @@ export default function FormsPage() {
   const qc = useQueryClient();
   const isViewer = user?.role === 'viewer';
 
+  const [page, setPage]           = useState(1);
+  const [search, setSearch]       = useState('');
+  const [createdBy, setCreatedBy] = useState('');
+  const [filledFilter, setFilled] = useState(''); // '' | 'filled' | 'unfilled'
   const [filling,   setFilling]   = useState(null);
   const [building,  setBuilding]  = useState(false);
-  const [editingForm, setEditingForm] = useState(null);
+  const [editingForm, setEditingForm]   = useState(null);
   const [deletingForm, setDeletingForm] = useState(null);
-  const [search, setSearch] = useState('');
 
-  const { data: adminFormsRes, isLoading: loadingAdmin } = useQuery({
-    queryKey: ['forms'],
-    queryFn: formsApi.getAll,
-  });
+  const debouncedSearch = useDebounce(search, 350);
+  const hasFilters = !!(debouncedSearch || createdBy || filledFilter);
 
-  const { data: myFormsRes, isLoading: loadingMy } = useQuery({
-    queryKey: ['my-forms'],
-    queryFn: formsApi.getMy,
-    enabled: !isViewer,
+  const { data: formsRes, isLoading } = useQuery({
+    queryKey: ['forms', { page, search: debouncedSearch, createdBy, filled: filledFilter }],
+    queryFn: () => formsApi.getAll({
+      page, limit: 12,
+      search:    debouncedSearch || undefined,
+      createdBy: createdBy       || undefined,
+      filled:    filledFilter    || undefined,
+    }),
   });
 
   const { data: submissionsRes } = useQuery({
@@ -84,114 +103,134 @@ export default function FormsPage() {
     enabled: !isViewer,
   });
 
-  const adminForms = adminFormsRes?.data?.data || [];
-  const myForms    = myFormsRes?.data?.data    || [];
+  const forms      = formsRes?.data?.data       || [];
+  const pagination = formsRes?.data?.pagination;
   const submissions = submissionsRes?.data?.data || [];
-
-  const q = search.trim().toLowerCase();
-  const filteredAdmin = q ? adminForms.filter(f => f.title?.toLowerCase().includes(q) || f.description?.toLowerCase().includes(q)) : adminForms;
-  const filteredMy    = q ? myForms.filter(f =>    f.title?.toLowerCase().includes(q) || f.description?.toLowerCase().includes(q)) : myForms;
 
   const submissionMap = {};
   submissions.forEach(s => { if (s.formId) submissionMap[s.formId.toString()] = s; });
 
   const deleteMutation = useMutation({
     mutationFn: formsApi.removeMy,
-    onSuccess: () => { toast?.success?.('Form deleted'); qc.invalidateQueries({ queryKey: ['my-forms'] }); setDeletingForm(null); },
-    onError: () => {},
+    onSuccess: () => {
+      toast.success('Form deleted');
+      qc.invalidateQueries({ queryKey: ['forms'] });
+      setDeletingForm(null);
+    },
   });
 
-  const isLoading = loadingAdmin || loadingMy;
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">Forms</h1>
           <p className="page-subtitle">Fill forms or create your own</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search forms..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="input input-icon py-2 text-sm"
-              style={{ minWidth: 200 }}
-            />
-          </div>
-          {!isViewer && (
-            <button onClick={() => setBuilding(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
-              <Plus size={16} /> Create My Form
-            </button>
-          )}
-        </div>
+        {!isViewer && (
+          <button onClick={() => setBuilding(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 12px rgba(99,102,241,0.25)' }}>
+            <Plus size={16} /> Create My Form
+          </button>
+        )}
       </div>
 
+      {/* Filters */}
+      <div className="flex gap-3 flex-wrap items-center">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search forms..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="input input-icon py-2 text-sm"
+          />
+        </div>
+
+        {/* Created By */}
+        {!isViewer && (
+          <div className="relative flex-shrink-0">
+            <SlidersHorizontal size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <select
+              value={createdBy}
+              onChange={e => { setCreatedBy(e.target.value); setPage(1); }}
+              className="pl-8 pr-4 py-2 rounded-xl border text-sm font-medium appearance-none cursor-pointer focus:outline-none transition-all"
+              style={{
+                borderColor:     createdBy ? '#6366f1' : '#e5e7eb',
+                backgroundColor: createdBy ? '#eef2ff' : '#fff',
+                color:           createdBy ? '#4338ca' : '#6b7280',
+              }}
+            >
+              <option value="">All Forms</option>
+              <option value="admin">By Admin</option>
+              <option value="mine">My Forms</option>
+            </select>
+          </div>
+        )}
+
+        {/* Filled status */}
+        {!isViewer && (
+          <div className="relative flex-shrink-0">
+            <SlidersHorizontal size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <select
+              value={filledFilter}
+              onChange={e => setFilled(e.target.value)}
+              className="pl-8 pr-4 py-2 rounded-xl border text-sm font-medium appearance-none cursor-pointer focus:outline-none transition-all"
+              style={{
+                borderColor:     filledFilter ? '#6366f1' : '#e5e7eb',
+                backgroundColor: filledFilter ? '#eef2ff' : '#fff',
+                color:           filledFilter ? '#4338ca' : '#6b7280',
+              }}
+            >
+              <option value="">All Status</option>
+              <option value="filled">Filled</option>
+              <option value="unfilled">Not Filled</option>
+            </select>
+          </div>
+        )}
+
+        {hasFilters && (
+          <button onClick={() => { setSearch(''); setCreatedBy(''); setFilled(''); setPage(1); }}
+            className="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-red-500 transition-colors px-2 py-2 rounded-lg hover:bg-red-50">
+            <X size={12} /> Clear
+          </button>
+        )}
+      </div>
+
+      {/* Grid */}
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+      ) : forms.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title={hasFilters ? 'No forms match your filters' : 'No forms available'}
+          description={hasFilters ? 'Try adjusting your search' : 'No forms yet'}
+        />
       ) : (
-        <>
-          {/* Admin forms */}
-          {filteredAdmin.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">From Administrator</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredAdmin.map(form => (
-                  <FormCard key={form._id} form={form} existing={submissionMap[form._id?.toString()]}
-                    isOwned={false} isViewer={isViewer}
-                    onFill={() => setFilling({ form, existing: submissionMap[form._id?.toString()] })} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* My forms */}
-          {!isViewer && (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">My Forms</p>
-              {myForms.length === 0 ? (
-                <div className="card text-center py-10">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
-                    <FileText size={20} className="text-indigo-300" />
-                  </div>
-                  <p className="text-gray-500 text-sm font-medium">No personal forms yet</p>
-                  <p className="text-gray-400 text-xs mt-1">Create your own form to track custom data</p>
-                  <button onClick={() => setBuilding(true)}
-                    className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                    style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
-                    <Plus size={14} /> Create My Form
-                  </button>
-                </div>
-              ) : filteredMy.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4">No personal forms match your search.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredMy.map(form => (
-                    <FormCard key={form._id} form={form} existing={submissionMap[form._id?.toString()]}
-                      isOwned={true} isViewer={isViewer}
-                      onFill={() => setFilling({ form, existing: submissionMap[form._id?.toString()] })}
-                      onEdit={() => setEditingForm(form)}
-                      onDelete={() => setDeletingForm(form._id)} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {filteredAdmin.length === 0 && (isViewer || filteredMy.length === 0) && (adminForms.length > 0 || myForms.length > 0) && (
-            <p className="text-sm text-gray-400 text-center py-8">No forms match "{search}"</p>
-          )}
-
-          {adminForms.length === 0 && (isViewer || myForms.length === 0) && !search && (
-            <EmptyState icon={FileText} title="No forms available" description="No forms yet" />
-          )}
-        </>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {forms.map(form => {
+            const isOwned = form.ownedBy && form.ownedBy._id === user?._id || form.ownedBy?._id?.toString() === user?.id;
+            return (
+              <FormCard
+                key={form._id}
+                form={form}
+                existing={submissionMap[form._id?.toString()]}
+                isOwned={isOwned}
+                isViewer={isViewer}
+                onFill={() => setFilling({ form, existing: submissionMap[form._id?.toString()] })}
+                onEdit={() => setEditingForm(form)}
+                onDelete={() => setDeletingForm(form._id)}
+              />
+            );
+          })}
+        </div>
       )}
+
+      <Pagination page={page} pages={pagination?.pages || 1} total={pagination?.total} onPage={setPage} />
 
       {/* Fill modal */}
       <Modal open={!!filling} onClose={() => setFilling(null)} title={filling?.form?.title}
@@ -202,17 +241,17 @@ export default function FormsPage() {
         )}
       </Modal>
 
-      {/* Create my form modal */}
+      {/* Create / Edit my form */}
       <Modal open={building || !!editingForm} onClose={() => { setBuilding(false); setEditingForm(null); }}
         title={editingForm ? 'Edit My Form' : 'Create My Form'} size="xl">
         <UserFormBuilder
           initial={editingForm}
-          onSuccess={() => { setBuilding(false); setEditingForm(null); qc.invalidateQueries({ queryKey: ['my-forms'] }); }} />
+          onSuccess={() => { setBuilding(false); setEditingForm(null); qc.invalidateQueries({ queryKey: ['forms'] }); }} />
       </Modal>
 
       <ConfirmDialog open={!!deletingForm} onClose={() => setDeletingForm(null)}
         onConfirm={() => deleteMutation.mutate(deletingForm)} loading={deleteMutation.isPending}
-        title="Delete Form" message="This will permanently delete your form and its data. Continue?" />
+        title="Delete Form" message="This will permanently delete your form. Continue?" />
     </div>
   );
 }

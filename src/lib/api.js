@@ -31,13 +31,12 @@ export const dataApi = {
 };
 
 export const formsApi = {
-  getAll:  ()           => api.get('/forms'),
-  create:  (data)       => api.post('/forms', data),
-  update:  (id, data)   => api.put(`/forms/${id}`, data),
-  remove:  (id)         => api.delete(`/forms/${id}`),
-  // User personal forms
-  getMy:        ()          => api.get('/forms/my'),
-  createMy:     (data)      => api.post('/forms/my', data),
-  updateMy:     (id, data)  => api.put(`/forms/my/${id}`, data),
-  removeMy:     (id)        => api.delete(`/forms/my/${id}`),
+  getAll:   (params) => api.get('/forms', { params }),
+  create:   (data)   => api.post('/forms', data),
+  update:   (id, data) => api.put(`/forms/${id}`, data),
+  remove:   (id)     => api.delete(`/forms/${id}`),
+  getMy:    ()       => api.get('/forms/my'),
+  createMy: (data)   => api.post('/forms/my', data),
+  updateMy: (id, data) => api.put(`/forms/my/${id}`, data),
+  removeMy: (id)     => api.delete(`/forms/my/${id}`),
 };
