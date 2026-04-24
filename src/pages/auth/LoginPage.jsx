@@ -218,9 +218,16 @@ function OTPStep({ userId, channel, onBack }) {
 
 // ── Main LoginPage ────────────────────────────────────
 export default function LoginPage() {
+  const { token } = useAuthStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (token) navigate('/dashboard', { replace: true });
+  }, [token, navigate]);
+
   const [step, setStep]       = useState('credentials');
   const [userId, setUserId]   = useState(null);
-  const [channel, setChannel] = useState('email'); // 'email' | 'mobile'
+  const [channel, setChannel] = useState('email');
 
   const handleOTPSent = (uid, ch) => {
     setUserId(uid);

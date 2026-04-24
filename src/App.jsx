@@ -12,16 +12,24 @@ import FormsPage from './pages/forms/FormsPage';
 import ViewersPage from './pages/viewers/ViewersPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import ActivityPage from './pages/activity/ActivityPage';
+import LandingPage from './pages/public/LandingPage';
+import TermsConditions from './pages/public/TermsConditions';
+import PrivacyPolicy from './pages/public/PrivacyPolicy';
 
 const PrivateRoute = ({ children }) => {
   const { token } = useAuthStore();
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/home" replace />;
   return children;
 };
 
 export default function App() {
   return (
     <Routes>
+      {/* Public Routes */}
+      <Route path="/home" element={<LandingPage />} />
+      <Route path="/terms-conditions" element={<TermsConditions />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
@@ -44,7 +52,7 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
   );
 }

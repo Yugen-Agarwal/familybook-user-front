@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { authApi } from '../../lib/api';
+import { useAuthStore } from '../../store/authStore';
 import AuthLayout from './AuthLayout';
 import { User, Mail, Phone, Lock, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
@@ -19,9 +20,13 @@ const validatePassword = (v) => {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { token } = useAuthStore();
   const [showPass, setShowPass] = useState(false);
   const [done, setDone]         = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
+
+  // redirect if already logged in
+  if (token) return <Navigate to="/dashboard" replace />;
 
   const { mutate, isPending } = useMutation({
     mutationFn: authApi.register,

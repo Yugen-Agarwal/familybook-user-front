@@ -1,5 +1,6 @@
-import { BookOpen, Shield, Users, Lock } from 'lucide-react';
+import { Shield, Users, Lock } from 'lucide-react';
 import familyBg from '../../assets/family-bg.jpg';
+import logo from '../../assets/familybook.png';
 
 export default function AuthLayout({ title, subtitle, children }) {
   return (
@@ -12,9 +13,7 @@ export default function AuthLayout({ title, subtitle, children }) {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.2)' }}>
-            <BookOpen size={20} className="text-white" />
-          </div>
+          <img src={logo} alt="FamilyBook" className="w-16 h-16 object-contain" />
           <span className="text-white font-bold text-xl tracking-tight">Family Book</span>
         </div>
 
@@ -27,9 +26,9 @@ export default function AuthLayout({ title, subtitle, children }) {
           </div>
           <div className="space-y-3">
             {[
-              { icon: Lock,   text: 'End-to-end encrypted data' },
+              { icon: Lock, text: 'End-to-end encrypted data' },
               { icon: Shield, text: 'Role-based access control' },
-              { icon: Users,  text: 'Secure viewer sharing' },
+              { icon: Users, text: 'Secure viewer sharing' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.15)' }}>
@@ -57,8 +56,8 @@ export default function AuthLayout({ title, subtitle, children }) {
         <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(79,70,229,0.06), transparent 70%)', transform: 'translate(-30%, 30%)' }} />
         {/* Mobile logo */}
         <div className="md:hidden flex items-center gap-2.5 px-6 pt-6">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-600">
-            <BookOpen size={18} className="text-white" />
+          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-md border border-indigo-100">
+            <img src={logo} alt="FamilyBook" className="w-6 h-6 object-contain" />
           </div>
           <span className="font-bold text-lg text-gray-900">Family Book</span>
         </div>
@@ -70,8 +69,8 @@ export default function AuthLayout({ title, subtitle, children }) {
             {/* Heading */}
             <div className="mb-8 text-center">
               {/* Icon badge */}
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', boxShadow: '0 8px 24px rgba(79,70,229,0.3)' }}>
-                <BookOpen size={24} className="text-white" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-white" style={{ boxShadow: '0 8px 24px rgba(79,70,229,0.2)', border: '1px solid rgba(99,102,241,0.15)' }}>
+                <img src={logo} alt="FamilyBook" className="w-16 h-16 object-contain" />
               </div>
               <h1 className="text-[1.75rem] font-bold text-gray-900 tracking-tight leading-tight">{title}</h1>
               {subtitle && <p className="text-gray-500 text-sm mt-2 leading-relaxed">{subtitle}</p>}
