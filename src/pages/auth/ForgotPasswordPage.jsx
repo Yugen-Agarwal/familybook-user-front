@@ -56,10 +56,10 @@ export default function ForgotPasswordPage() {
 
         {method === 'email' ? (
           <div>
-            <label className="label">Email address</label>
+            <label className="label">Email address <span className="text-red-500">*</span></label>
             <div className="relative">
               <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input className="input input-icon" type="email" placeholder="you@example.com"
+              <input className={`input input-icon ${errors.email ? 'border-red-500 bg-red-50/30' : ''}`} type="email" placeholder="you@example.com"
                 {...register('email', {
                   required: 'Email is required',
                   pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' },
@@ -69,10 +69,10 @@ export default function ForgotPasswordPage() {
           </div>
         ) : (
           <div>
-            <label className="label">Mobile number</label>
+            <label className="label">Mobile number <span className="text-red-500">*</span></label>
             <div className="relative">
               <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input className="input input-icon" placeholder="10-digit mobile number" maxLength={10}
+              <input className={`input input-icon ${errors.mobile ? 'border-red-500 bg-red-50/30' : ''}`} placeholder="10-digit mobile number" maxLength={10}
                 {...register('mobile', {
                   required: 'Mobile is required',
                   validate: v => /^\d{10}$/.test(v) || 'Enter valid 10-digit number',

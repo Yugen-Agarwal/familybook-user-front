@@ -6,27 +6,28 @@ import {
   Users, ArrowUpRight, Activity, LogIn, KeyRound,
   Share2, Database, ShieldCheck, Clock, ChevronRight,
   CalendarDays, X, FileText, CheckCircle2, ClipboardList,
+  Mail,
 } from 'lucide-react';
 import Spinner from '../../components/ui/Spinner';
 import { Link, useNavigate } from 'react-router-dom';
 
 const TYPE_CONFIG = {
-  LOGIN: { label: 'Login',  icon: LogIn,       color: 'bg-blue-50 text-blue-600' },
-  OTP:   { label: 'OTP',   icon: KeyRound,     color: 'bg-amber-50 text-amber-600' },
-  SHARE: { label: 'Access', icon: Share2,       color: 'bg-purple-50 text-purple-600' },
-  DATA:  { label: 'Data',   icon: Database,     color: 'bg-emerald-50 text-emerald-600' },
-  ADMIN: { label: 'Admin',  icon: ShieldCheck,  color: 'bg-red-50 text-red-500' },
+  LOGIN: { label: 'Login', icon: LogIn, color: 'bg-blue-50 text-blue-600' },
+  OTP: { label: 'OTP', icon: KeyRound, color: 'bg-amber-50 text-amber-600' },
+  SHARE: { label: 'Access', icon: Share2, color: 'bg-purple-50 text-purple-600' },
+  DATA: { label: 'Data', icon: Database, color: 'bg-emerald-50 text-emerald-600' },
+  ADMIN: { label: 'Admin', icon: ShieldCheck, color: 'bg-red-50 text-red-500' },
 };
 
 function timeAgo(date) {
-  const diff  = Date.now() - new Date(date).getTime();
-  const mins  = Math.floor(diff / 60000);
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (mins < 1)   return 'Just now';
-  if (mins < 60)  return `${mins}m ago`;
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
-  if (days < 7)   return `${days}d ago`;
+  if (days < 7) return `${days}d ago`;
   return new Date(date).toLocaleDateString();
 }
 
@@ -34,35 +35,35 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [startDate, setStartDate] = useState('');
-  const [endDate,   setEndDate]   = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const dateParams = {
     ...(startDate && { startDate }),
-    ...(endDate   && { endDate }),
+    ...(endDate && { endDate }),
   };
   const hasFilter = !!(startDate || endDate);
 
   const { data: viewersRes } = useQuery({
     queryKey: ['viewers'],
-    queryFn:  viewerApi.list,
-    enabled:  user?.role === 'user',
+    queryFn: viewerApi.list,
+    enabled: user?.role === 'user',
   });
 
   const { data: activityRes, isLoading: loadingActivity } = useQuery({
     queryKey: ['user-activity-recent', dateParams],
-    queryFn:  () => dataApi.getActivity({ page: 1, limit: 6, ...dateParams }),
-    enabled:  user?.role === 'user',
+    queryFn: () => dataApi.getActivity({ page: 1, limit: 6, ...dateParams }),
+    enabled: user?.role === 'user',
   });
 
   const { data: formStatsRes } = useQuery({
     queryKey: ['user-form-stats'],
-    queryFn:  dataApi.getFormStats,
-    enabled:  user?.role === 'user',
+    queryFn: dataApi.getFormStats,
+    enabled: user?.role === 'user',
   });
 
-  const viewers    = viewersRes?.data?.data  || [];
-  const activity   = activityRes?.data?.data || [];
-  const formStats  = formStatsRes?.data?.data;
+  const viewers = viewersRes?.data?.data || [];
+  const activity = activityRes?.data?.data || [];
+  const formStats = formStatsRes?.data?.data;
 
   return (
     <div className="space-y-6">
@@ -71,14 +72,16 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">
-            {user?.role === 'viewer' || user?.role === 'owner'
-              ? 'Shared Access'
-              : `Good to see you, ${user?.name?.split(' ')[0] || 'there'} 👋`}
+            {user?.role === 'viewer'
+              ? `Welcome, ${user?.name?.split(' ')[0] || 'Visitor'} 👋`
+              : user?.role === 'owner'
+                ? 'Shared Access'
+                : `Good to see you, ${user?.name?.split(' ')[0] || 'there'} 👋`}
           </h1>
           <p className="page-subtitle">
             {user?.role === 'viewer' ? 'Read-only access to shared family data'
-             : user?.role === 'owner' ? 'Full access to shared family data'
-             : "Here's your Family Book overview"}
+              : user?.role === 'owner' ? 'Full access to shared family data'
+                : "Here's your Family Book overview"}
           </p>
         </div>
       </div>
@@ -89,7 +92,7 @@ export default function DashboardPage() {
           className="bg-white rounded-2xl border p-4 flex flex-wrap items-center gap-3 transition-all duration-200"
           style={{
             borderColor: hasFilter ? '#c7d2fe' : '#f3f4f6',
-            boxShadow:   hasFilter ? '0 0 0 3px rgb(99 102 241/.07)' : '0 1px 3px rgb(0 0 0/.05)',
+            boxShadow: hasFilter ? '0 0 0 3px rgb(99 102 241/.07)' : '0 1px 3px rgb(0 0 0/.05)',
           }}
         >
           {/* icon + label */}
@@ -143,6 +146,101 @@ export default function DashboardPage() {
               <X size={12} /> Clear
             </button>
           )}
+        </div>
+      )}
+
+      {/* Visitor Specific Dashboard */}
+      {user?.role === 'viewer' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Welcome Card */}
+          <div className="card bg-gradient-to-br from-[#1e2a5e] to-[#3f4bca] border-none text-white p-8 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 space-y-6">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                <ShieldCheck size={28} className="text-blue-200" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Visitor Access</h2>
+                <p className="text-blue-100/80 mt-2 leading-relaxed">
+                  You are logged in as a visitor. You can view forms and data shared within your family network.
+                  All information is managed by your parent account.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Link to="/forms" className="px-5 py-2.5 bg-white text-[#1e2a5e] rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors shadow-lg">
+                  View Shared Forms
+                </Link>
+                <Link to="/profile" className="px-5 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl font-bold text-sm hover:bg-white/20 transition-colors">
+                  My Profile
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Parent Details Card */}
+          <div className="card bg-white border-gray-100 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                  <Users size={20} className="text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Parent Account</h3>
+                  <p className="text-xs text-gray-400">Owner of this visitor access</p>
+                </div>
+              </div>
+
+              {user?.parent ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg,#1e2a5e,#3f4bca)' }}>
+                      {user.parent.name?.[0]?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 truncate">{user.parent.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.parent.email || user.parent.mobile}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-white">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <Mail size={14} className="text-blue-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Email</p>
+                        <p className="text-xs font-semibold text-gray-700 truncate">{user.parent.email || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-white">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <Activity size={14} className="text-emerald-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Mobile</p>
+                        <p className="text-xs font-semibold text-gray-700 truncate">{user.parent.mobile || '—'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                    <Users size={20} className="text-gray-300" />
+                  </div>
+                  <p className="text-sm text-gray-400">Parent details not available</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-2 text-[11px] text-gray-400 italic">
+              <ShieldCheck size={12} className="text-gray-300" />
+              Verified by Family Book Security System
+            </div>
+          </div>
         </div>
       )}
 
@@ -279,7 +377,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-1">
               {activity.map(log => {
-                const cfg  = TYPE_CONFIG[log.type] || { label: log.type, icon: Clock, color: 'bg-gray-100 text-gray-500' };
+                const cfg = TYPE_CONFIG[log.type] || { label: log.type, icon: Clock, color: 'bg-gray-100 text-gray-500' };
                 const Icon = cfg.icon;
                 return (
                   <div key={log._id}

@@ -30,6 +30,7 @@ export default function ResetPasswordPage() {
   }, [timer]);
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const newPassword = watch('newPassword', '');
 
   const { mutate, isPending } = useMutation({
     mutationFn: authApi.resetPassword,
@@ -65,7 +66,7 @@ export default function ResetPasswordPage() {
         {/* OTP */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="label mb-0">OTP code</label>
+            <label className="label mb-0">OTP code <span className="text-red-500">*</span></label>
             <button
               type="button"
               onClick={() => resendMutation.mutate()}
@@ -77,7 +78,7 @@ export default function ResetPasswordPage() {
             </button>
           </div>
           <input
-            className="input text-center tracking-[.5em] font-bold text-lg"
+            className={`input text-center tracking-[.5em] font-bold text-lg ${errors.otp ? 'border-red-500 bg-red-50/30' : ''}`}
             maxLength={6}
             placeholder="000000"
             {...register('otp', { 
@@ -90,11 +91,11 @@ export default function ResetPasswordPage() {
 
         {/* New password */}
         <div>
-          <label className="label">New password</label>
+          <label className="label">New password <span className="text-red-500">*</span></label>
           <div className="relative">
             <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
-              className="input input-icon pr-11"
+              className={`input input-icon pr-11 ${errors.newPassword ? 'border-red-500 bg-red-50/30' : ''}`}
               type={showNew ? 'text' : 'password'}
               placeholder="Min 8 characters, uppercase, number & symbol"
               {...register('newPassword', { 
@@ -112,16 +113,32 @@ export default function ResetPasswordPage() {
               {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {newPassword && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {[
+                { label: '8+ chars',   ok: newPassword.length >= 8 },
+                { label: 'Lowercase',  ok: /[a-z]/.test(newPassword) },
+                { label: 'Uppercase',  ok: /[A-Z]/.test(newPassword) },
+                { label: 'Number',     ok: /\d/.test(newPassword) },
+                { label: 'Special',    ok: /[^a-zA-Z0-9]/.test(newPassword) },
+              ].map(c => (
+                <span key={c.label} className={`flex items-center gap-1 text-[10px] font-bold ${c.ok ? 'text-emerald-500' : 'text-gray-400'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.ok ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                  {c.label}
+                </span>
+              ))}
+            </div>
+          )}
           {errors.newPassword && <p className="text-red-500 text-xs mt-1.5">{errors.newPassword.message}</p>}
         </div>
 
         {/* Confirm password */}
         <div>
-          <label className="label">Confirm password</label>
+          <label className="label">Confirm password <span className="text-red-500">*</span></label>
           <div className="relative">
             <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
-              className="input input-icon pr-11"
+              className={`input input-icon pr-11 ${errors.confirm ? 'border-red-500 bg-red-50/30' : ''}`}
               type={showConfirm ? 'text' : 'password'}
               placeholder="Repeat password"
               {...register('confirm', {

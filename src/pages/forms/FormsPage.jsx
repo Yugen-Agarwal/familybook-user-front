@@ -177,18 +177,18 @@ export default function FormsPage() {
     }),
   });
 
-  const { data: submissionsRes } = useQuery({
+  const { data: submissionsRes, isLoading: isLoadingSubmissions } = useQuery({
     queryKey: ['my-submissions'],
     queryFn: () => dataApi.getAll({ limit: 200 }),
-    enabled: !isViewer,
   });
 
-  const forms      = formsRes?.data?.data       || [];
   const pagination = formsRes?.data?.pagination;
   const submissions = submissionsRes?.data?.data || [];
 
   const submissionMap = {};
   submissions.forEach(s => { if (s.formId) submissionMap[s.formId.toString()] = s; });
+
+  const forms = formsRes?.data?.data || [];
 
   const deleteMutation = useMutation({
     mutationFn: formsApi.removeMy,
@@ -282,7 +282,7 @@ export default function FormsPage() {
       </div>
 
       {/* Grid */}
-      {isLoading ? (
+      {isLoading || isLoadingSubmissions ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : forms.length === 0 ? (
         <EmptyState

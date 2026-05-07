@@ -64,7 +64,7 @@ export default function AuthLayout({ title, subtitle, children }) {
 
         {/* Centered form */}
         <div className="flex-1 flex items-center justify-center px-6 py-12">
-          <div className="w-full max-w-[400px]">
+          <div className="w-full max-w-[540px]">
 
             {/* Heading */}
             <div className="mb-8 text-center">

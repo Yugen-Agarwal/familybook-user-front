@@ -23,7 +23,8 @@ export default function RegisterPage() {
   const { token } = useAuthStore();
   const [showPass, setShowPass] = useState(false);
   const [done, setDone]         = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const password = watch('password', '');
 
   // redirect if already logged in
   if (token) return <Navigate to="/dashboard" replace />;
@@ -62,49 +63,51 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit(mutate)} className="space-y-4">
 
         <div>
-          <label className="label">Full name</label>
+          <label className="label">Full name <span className="text-red-500">*</span></label>
           <div className="relative">
             <User size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input className="input input-icon" placeholder="John Doe"
+            <input className={`input input-icon ${errors.name ? 'border-red-500 bg-red-50/30' : ''}`} placeholder="John Doe"
               {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'Min 2 characters' } })} />
           </div>
           {errors.name && <p className="text-red-500 text-xs mt-1.5">{errors.name.message}</p>}
         </div>
 
-        <div>
-          <label className="label">Email address</label>
-          <div className="relative">
-            <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input className="input input-icon" type="email" placeholder="you@example.com"
-              {...register('email', {
-                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
-              })} />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Email address</label>
+            <div className="relative">
+              <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input className={`input input-icon ${errors.email ? 'border-red-500 bg-red-50/30' : ''}`} type="email" placeholder="you@example.com"
+                {...register('email', {
+                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+                })} />
+            </div>
+            {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
           </div>
-          {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
+
+          <div>
+            <label className="label">Mobile <span className="text-red-500">*</span></label>
+            <div className="relative">
+              <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input className={`input input-icon ${errors.mobile ? 'border-red-500 bg-red-50/30' : ''}`} placeholder="10-digit number" maxLength={10}
+                {...register('mobile', {
+                  required: 'Mobile number is required',
+                  validate: v => /^\d{10}$/.test(v) || 'Enter a valid 10-digit mobile number',
+                })}
+                onKeyDown={e => {
+                  if (!/[\d]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key))
+                    e.preventDefault();
+                }} />
+            </div>
+            {errors.mobile && <p className="text-red-500 text-xs mt-1.5">{errors.mobile.message}</p>}
+          </div>
         </div>
 
         <div>
-          <label className="label">Mobile number</label>
-          <div className="relative">
-            <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input className="input input-icon" placeholder="10-digit mobile number" maxLength={10}
-              {...register('mobile', {
-                required: 'Mobile number is required',
-                validate: v => /^\d{10}$/.test(v) || 'Enter a valid 10-digit mobile number',
-              })}
-              onKeyDown={e => {
-                if (!/[\d]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key))
-                  e.preventDefault();
-              }} />
-          </div>
-          {errors.mobile && <p className="text-red-500 text-xs mt-1.5">{errors.mobile.message}</p>}
-        </div>
-
-        <div>
-          <label className="label">Password</label>
+          <label className="label">Password <span className="text-red-500">*</span></label>
           <div className="relative">
             <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input className="input input-icon pr-11" type={showPass ? 'text' : 'password'}
+            <input className={`input input-icon pr-11 ${errors.password ? 'border-red-500 bg-red-50/30' : ''}`} type={showPass ? 'text' : 'password'}
               placeholder="Create a strong password"
               {...register('password', { validate: validatePassword })} />
             <button type="button" onClick={() => setShowPass(!showPass)}
@@ -112,6 +115,22 @@ export default function RegisterPage() {
               {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {password && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {[
+                { label: '8+ chars',   ok: password.length >= 8 },
+                { label: 'Lowercase',  ok: /[a-z]/.test(password) },
+                { label: 'Uppercase',  ok: /[A-Z]/.test(password) },
+                { label: 'Number',     ok: /\d/.test(password) },
+                { label: 'Special',    ok: /[^a-zA-Z0-9]/.test(password) },
+              ].map(c => (
+                <span key={c.label} className={`flex items-center gap-1 text-[10px] font-bold ${c.ok ? 'text-emerald-500' : 'text-gray-400'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.ok ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                  {c.label}
+                </span>
+              ))}
+            </div>
+          )}
           {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password.message}</p>}
         </div>
 

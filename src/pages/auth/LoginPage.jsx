@@ -53,20 +53,20 @@ function CredentialsStep({ onOTPSent }) {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {loginMethod === 'email' ? (
           <div>
-            <label className="label">Email address</label>
+            <label className="label">Email address <span className="text-red-500">*</span></label>
             <div className="relative">
               <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input className="input input-icon" type="email" placeholder="you@example.com"
+              <input className={`input input-icon ${errors.email ? 'border-red-500 bg-red-50/30' : ''}`} type="email" placeholder="you@example.com"
                 {...register('email', { required: 'Email is required' })} />
             </div>
             {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email.message}</p>}
           </div>
         ) : (
           <div>
-            <label className="label">Mobile number</label>
+            <label className="label">Mobile number <span className="text-red-500">*</span></label>
             <div className="relative">
               <Phone size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input className="input input-icon" placeholder="10-digit number" maxLength="10"
+              <input className={`input input-icon ${errors.mobile ? 'border-red-500 bg-red-50/30' : ''}`} placeholder="10-digit number" maxLength="10"
                 {...register('mobile', { 
                   required: 'Mobile is required',
                   pattern: { value: /^\d{10}$/, message: 'Enter valid 10-digit number' }
@@ -80,14 +80,14 @@ function CredentialsStep({ onOTPSent }) {
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="label mb-0">Password</label>
+            <label className="label mb-0">Password <span className="text-red-500">*</span></label>
             <Link to="/forgot-password" disabled={isPending} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
               Forgot password?
             </Link>
           </div>
           <div className="relative">
             <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input className="input input-icon pr-11" type={showPass ? 'text' : 'password'} placeholder="••••••••"
+            <input className={`input input-icon pr-11 ${errors.password ? 'border-red-500 bg-red-50/30' : ''}`} type={showPass ? 'text' : 'password'} placeholder="••••••••"
               {...register('password', { required: 'Password is required' })} />
             <button type="button" onClick={() => setShowPass(!showPass)}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -173,9 +173,9 @@ function OTPStep({ userId, channel, onBack }) {
 
       <form onSubmit={handleSubmit((data) => mutate({ otp: data.otp }))} className="space-y-4">
         <div>
-          <label className="label">Enter OTP</label>
+          <label className="label">Enter OTP <span className="text-red-500">*</span></label>
           <input
-            className="input text-center tracking-[.5em] font-bold text-2xl"
+            className={`input text-center tracking-[.5em] font-bold text-2xl ${errors.otp ? 'border-red-500 bg-red-50/30' : ''}`}
             maxLength={6}
             placeholder="000000"
             autoFocus

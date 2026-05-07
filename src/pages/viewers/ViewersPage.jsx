@@ -155,6 +155,22 @@ function ViewerForm({ viewer, onSuccess }) {
             {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
+        {watch('password') && (
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {[
+              { label: '8+ chars',   ok: watch('password').length >= 8 },
+              { label: 'Lowercase',  ok: /[a-z]/.test(watch('password')) },
+              { label: 'Uppercase',  ok: /[A-Z]/.test(watch('password')) },
+              { label: 'Number',     ok: /\d/.test(watch('password')) },
+              { label: 'Special',    ok: /[^a-zA-Z0-9]/.test(watch('password')) },
+            ].map(c => (
+              <span key={c.label} className={`flex items-center gap-1 text-[10px] font-bold ${c.ok ? 'text-emerald-500' : 'text-gray-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${c.ok ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                {c.label}
+              </span>
+            ))}
+          </div>
+        )}
         {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
       </div>
 

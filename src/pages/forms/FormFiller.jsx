@@ -72,8 +72,13 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
     });
   };
 
+  // Block Enter from submitting the form anywhere
+  const handleFormKeyDown = (e) => {
+    if (e.key === 'Enter') e.preventDefault();
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormKeyDown} className="space-y-4">
       {form.description && <p className="text-sm text-gray-500 bg-gray-50 px-4 py-3 rounded-xl">{form.description}</p>}
 
       <div className="border border-gray-100 rounded-2xl overflow-hidden">
@@ -134,7 +139,10 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
         {showAddCol && (
           <div className="px-4 py-3 border-t border-gray-100 bg-indigo-50/30 flex items-center gap-2 flex-wrap">
             <input className="input text-sm flex-1 min-w-[140px]" placeholder="Column name"
-              value={newCol.label} onChange={e => setNewCol(p => ({ ...p, label: e.target.value }))} />
+              autoFocus
+              value={newCol.label}
+              onChange={e => setNewCol(p => ({ ...p, label: e.target.value }))}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCol(); } }} />
             <div className="relative">
               <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
                 value={newCol.type} onChange={e => setNewCol(p => ({ ...p, type: e.target.value }))}>
@@ -200,10 +208,15 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
     });
   };
 
+  // Block Enter from submitting the form anywhere
+  const handleFormKeyDown = (e) => {
+    if (e.key === 'Enter') e.preventDefault();
+  };
+
   const allFields = [...form.fields, ...extraFields];
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormKeyDown} className="space-y-4">
       {form.description && <p className="text-sm text-gray-500 bg-gray-50 px-4 py-3 rounded-xl">{form.description}</p>}
 
       <div className="space-y-0">
@@ -235,7 +248,10 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
           {showAdd ? (
             <div className="flex items-center gap-2 p-3 bg-indigo-50/40 rounded-xl border border-indigo-100 flex-wrap">
               <input className="input text-sm flex-1 min-w-[140px]" placeholder="Field name"
-                value={newField.label} onChange={e => setNewField(p => ({ ...p, label: e.target.value }))} />
+                autoFocus
+                value={newField.label}
+                onChange={e => setNewField(p => ({ ...p, label: e.target.value }))}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addField(); } }} />
               <div className="relative">
                 <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
                   value={newField.type} onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}>

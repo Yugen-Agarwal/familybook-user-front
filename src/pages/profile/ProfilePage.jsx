@@ -7,7 +7,7 @@ import { authApi } from '../../lib/api';
 import {
   Lock, Mail, Phone, ShieldCheck, Eye, EyeOff,
   KeyRound, MessageSquare, CheckCircle2, ArrowRight,
-  ChevronLeft, RefreshCw, Edit2, User, Save
+  ChevronLeft, RefreshCw, Edit2, User, Users, Save
 } from 'lucide-react';
 
 function ChangeWithPassword({ onDone }) {
@@ -15,6 +15,7 @@ function ChangeWithPassword({ onDone }) {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const newPassword = watch('newPassword', '');
   
   const { mutate, isPending } = useMutation({
     mutationFn: authApi.changePassword,
@@ -54,6 +55,22 @@ function ChangeWithPassword({ onDone }) {
             {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
+        {newPassword && (
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {[
+              { label: '8+ chars',   ok: newPassword.length >= 8 },
+              { label: 'Lowercase',  ok: /[a-z]/.test(newPassword) },
+              { label: 'Uppercase',  ok: /[A-Z]/.test(newPassword) },
+              { label: 'Number',     ok: /\d/.test(newPassword) },
+              { label: 'Special',    ok: /[^a-zA-Z0-9]/.test(newPassword) },
+            ].map(c => (
+              <span key={c.label} className={`flex items-center gap-1 text-[10px] font-bold ${c.ok ? 'text-emerald-500' : 'text-gray-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${c.ok ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                {c.label}
+              </span>
+            ))}
+          </div>
+        )}
         {errors.newPassword && <p className="text-red-500 text-xs mt-1">{errors.newPassword.message}</p>}
       </div>
       <div>
@@ -91,6 +108,7 @@ function ChangeWithOTP({ user, onDone }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [timer, setTimer]         = useState(0);
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const newPassword = watch('newPassword', '');
 
   useEffect(() => {
     let interval;
@@ -247,6 +265,22 @@ function ChangeWithOTP({ user, onDone }) {
             {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
+        {newPassword && (
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {[
+              { label: '8+ chars',   ok: newPassword.length >= 8 },
+              { label: 'Lowercase',  ok: /[a-z]/.test(newPassword) },
+              { label: 'Uppercase',  ok: /[A-Z]/.test(newPassword) },
+              { label: 'Number',     ok: /\d/.test(newPassword) },
+              { label: 'Special',    ok: /[^a-zA-Z0-9]/.test(newPassword) },
+            ].map(c => (
+              <span key={c.label} className={`flex items-center gap-1 text-[10px] font-bold ${c.ok ? 'text-emerald-500' : 'text-gray-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${c.ok ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                {c.label}
+              </span>
+            ))}
+          </div>
+        )}
         {errors.newPassword && <p className="text-red-500 text-xs mt-1">{errors.newPassword.message}</p>}
       </div>
       <div>
@@ -415,6 +449,56 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Parent Details — visitor only */}
+        {user?.role === 'viewer' && (
+          <div className="card">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <Users size={16} className="text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Parent Account</p>
+              </div>
+            </div>
+
+            {user?.parent ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg,#1e2a5e,#3f4bca)' }}>
+                    {user.parent.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">{user.parent.name}</p>
+                    <p className="text-[10px] text-gray-500 truncate">{user.parent.email || user.parent.mobile}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Email</span>
+                    <span className="text-xs font-medium text-gray-700">{user.parent.email || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Mobile</span>
+                    <span className="text-xs font-medium text-gray-700">{user.parent.mobile || '—'}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-[10px] text-gray-400 leading-relaxed italic text-center">
+                    This account is managed by your parent account. Contact them for access changes.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-xs text-gray-400 italic">Parent details not available</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Security */}
         {user?.role !== 'viewer' && (

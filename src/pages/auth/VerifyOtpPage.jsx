@@ -10,7 +10,7 @@ import { ShieldCheck } from 'lucide-react';
 export default function VerifyOtpPage() {
   const navigate = useNavigate();
   const { pendingUserId } = useAuthStore();
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const { mutate, isPending } = useMutation({
     mutationFn: authApi.verifyOtp,
@@ -33,9 +33,9 @@ export default function VerifyOtpPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="label">OTP code</label>
+          <label className="label">OTP code <span className="text-red-500">*</span></label>
           <input
-            className="input text-center text-2xl tracking-[.5em] font-bold"
+            className={`input text-center text-2xl tracking-[.5em] font-bold ${errors.otp ? 'border-red-500 bg-red-50/30' : ''}`}
             maxLength={6}
             placeholder="000000"
             {...register('otp', { required: true, minLength: 6, maxLength: 6 })}
