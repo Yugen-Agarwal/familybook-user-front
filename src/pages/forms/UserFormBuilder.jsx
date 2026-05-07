@@ -1,8 +1,9 @@
+import { useRef, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { formsApi } from '../../lib/api';
-import { Plus, Trash2, GripVertical, ChevronDown, Table2, FileText, Lock } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Table2, FileText, Lock } from 'lucide-react';
 
 const FIELD_TYPES = [
   { value: 'text',    label: 'Text' },
@@ -13,9 +14,76 @@ const FIELD_TYPES = [
 ];
 
 const FORM_TYPES = [
-  { value: 'table',  icon: Table2,   title: 'Table',  desc: 'Multiple rows — like a list', grad: 'linear-gradient(135deg,#6366f1,#818cf8)' },
-  { value: 'record', icon: FileText, title: 'Record', desc: 'Single entry — like a document', grad: 'linear-gradient(135deg,#10b981,#34d399)' },
+  { value: 'table',  icon: Table2,   title: 'Table',  desc: 'Multiple rows — like a list',      grad: 'linear-gradient(135deg,#6366f1,#818cf8)' },
+  { value: 'record', icon: FileText, title: 'Record', desc: 'Single entry — like a document',   grad: 'linear-gradient(135deg,#10b981,#34d399)' },
 ];
+
+function FieldRow({ index, total, register, errors, remove, move, watch }) {
+  const type        = watch(`fields.${index}.type`);
+  const fieldErrors = errors?.fields?.[index];
+
+  return (
+    <div className="rounded-xl border bg-gray-50/60 p-3 space-y-2 transition-all"
+      style={{ borderColor: fieldErrors ? '#fca5a5' : '#f3f4f6' }}>
+      <div className="flex items-start gap-2">
+
+        {/* Grip + arrows */}
+        <GripVertical size={14} className="text-gray-300 flex-shrink-0 mt-2.5 cursor-grab" />
+        <div className="flex flex-col gap-0.5 flex-shrink-0 mt-1">
+          <button type="button" disabled={index === 0} onClick={() => move(index, index - 1)}
+            className="p-0.5 rounded hover:bg-gray-200 text-gray-300 hover:text-gray-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+            <ChevronUp size={12} />
+          </button>
+          <button type="button" disabled={index === total - 1} onClick={() => move(index, index + 1)}
+            className="p-0.5 rounded hover:bg-gray-200 text-gray-300 hover:text-gray-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+            <ChevronDown size={12} />
+          </button>
+        </div>
+
+        {/* Label */}
+        <div className="flex-1">
+          <input className={`input text-sm w-full ${fieldErrors?.label ? 'border-red-400 bg-red-50' : ''}`}
+            placeholder="Field label  e.g. Full Name"
+            {...register(`fields.${index}.label`, { required: 'Label required' })} />
+          {fieldErrors?.label && <p className="text-red-500 text-xs mt-1">{fieldErrors.label.message}</p>}
+        </div>
+
+        {/* Key */}
+        <div className="w-32 self-start">
+          <input className={`input text-sm w-full font-mono ${fieldErrors?.key ? 'border-red-400 bg-red-50' : ''}`}
+            placeholder="key_name"
+            {...register(`fields.${index}.key`, {
+              required: 'Key required',
+              pattern: { value: /^[a-z0-9_]+$/, message: 'lowercase & _ only' },
+            })} />
+          {fieldErrors?.key && <p className="text-red-500 text-xs mt-1">{fieldErrors.key.message}</p>}
+        </div>
+
+        {/* Type */}
+        <div className="relative w-28 flex-shrink-0 self-start">
+          <select className="input text-sm appearance-none pr-6 cursor-pointer"
+            {...register(`fields.${index}.type`)}>
+            {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        </div>
+
+        {/* Delete */}
+        <button type="button" onClick={() => remove(index)}
+          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 self-start mt-0.5">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {type === 'select' && (
+        <div className="pl-10">
+          <input className="input text-xs" placeholder="Options comma-separated  e.g. BTC,ETH,SOL"
+            {...register(`fields.${index}.options`)} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function UserFormBuilder({ initial, onSuccess }) {
   const isEdit = !!initial;
@@ -25,7 +93,7 @@ export default function UserFormBuilder({ initial, onSuccess }) {
     : { title: '', description: '', formType: 'record', fields: [{ label: '', key: '', type: 'text', options: '' }] };
 
   const { register, handleSubmit, control, watch, formState: { errors } } = useForm({ defaultValues });
-  const { fields, append, remove } = useFieldArray({ control, name: 'fields' });
+  const { fields, append, remove, move } = useFieldArray({ control, name: 'fields' });
   const selectedType = watch('formType');
 
   const { mutate, isPending } = useMutation({
@@ -39,7 +107,6 @@ export default function UserFormBuilder({ initial, onSuccess }) {
       ...values,
       fields: values.fields.map(f => ({
         ...f,
-        key: f.key || f.label.toLowerCase().replace(/\s+/g, '_'),
         options: f.options ? f.options.split(',').map(o => o.trim()).filter(Boolean) : [],
       })),
     });
@@ -92,7 +159,9 @@ export default function UserFormBuilder({ initial, onSuccess }) {
         <div className="flex items-center justify-between mb-3">
           <div>
             <label className="label mb-0">Fields</label>
-            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1"><Lock size={10} className="text-amber-400" /> All fields encrypted automatically</p>
+            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+              <Lock size={10} className="text-amber-400" /> All fields encrypted automatically
+            </p>
           </div>
           <button type="button"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
@@ -102,35 +171,18 @@ export default function UserFormBuilder({ initial, onSuccess }) {
         </div>
 
         <div className="space-y-2">
-          {fields.map((f, i) => {
-            const type = watch(`fields.${i}.type`);
-            return (
-              <div key={f.id} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <GripVertical size={14} className="text-gray-300 flex-shrink-0" />
-                  <input className="input text-sm flex-1" placeholder="Field label"
-                    {...register(`fields.${i}.label`, { required: true })} />
-                  <div className="relative w-28 flex-shrink-0">
-                    <select className="input text-sm appearance-none pr-6 cursor-pointer"
-                      {...register(`fields.${i}.type`)}>
-                      {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  </div>
-                  <button type="button" onClick={() => remove(i)}
-                    className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                {type === 'select' && (
-                  <div className="pl-6">
-                    <input className="input text-xs" placeholder="Options comma-separated  e.g. BTC,ETH,SOL"
-                      {...register(`fields.${i}.options`)} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {fields.map((f, i) => (
+            <FieldRow
+              key={f.id}
+              index={i}
+              total={fields.length}
+              register={register}
+              errors={errors}
+              remove={remove}
+              move={move}
+              watch={watch}
+            />
+          ))}
           {fields.length === 0 && (
             <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm">
               No fields yet — click "Add Field"
@@ -141,8 +193,12 @@ export default function UserFormBuilder({ initial, onSuccess }) {
 
       <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
         <button type="submit" disabled={isPending}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-semibold text-sm disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.25)' }}>
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-semibold text-sm disabled:cursor-not-allowed transition-opacity"
+          style={{
+            background: isPending ? 'linear-gradient(135deg,#a5b4fc,#c4b5fd)' : 'linear-gradient(135deg,#6366f1,#818cf8)',
+            boxShadow:  isPending ? 'none' : '0 4px 14px rgba(99,102,241,0.25)',
+            opacity:    isPending ? 0.6 : 1,
+          }}>
           {isPending ? 'Saving…' : isEdit ? 'Update Form' : 'Create Form'}
         </button>
       </div>

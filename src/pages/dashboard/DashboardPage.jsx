@@ -5,10 +5,10 @@ import { useAuthStore } from '../../store/authStore';
 import {
   Users, ArrowUpRight, Activity, LogIn, KeyRound,
   Share2, Database, ShieldCheck, Clock, ChevronRight,
-  CalendarDays, X,
+  CalendarDays, X, FileText, CheckCircle2, ClipboardList,
 } from 'lucide-react';
 import Spinner from '../../components/ui/Spinner';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const TYPE_CONFIG = {
   LOGIN: { label: 'Login',  icon: LogIn,       color: 'bg-blue-50 text-blue-600' },
@@ -32,6 +32,7 @@ function timeAgo(date) {
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [startDate, setStartDate] = useState('');
   const [endDate,   setEndDate]   = useState('');
 
@@ -53,8 +54,15 @@ export default function DashboardPage() {
     enabled:  user?.role === 'user',
   });
 
-  const viewers  = viewersRes?.data?.data  || [];
-  const activity = activityRes?.data?.data || [];
+  const { data: formStatsRes } = useQuery({
+    queryKey: ['user-form-stats'],
+    queryFn:  dataApi.getFormStats,
+    enabled:  user?.role === 'user',
+  });
+
+  const viewers    = viewersRes?.data?.data  || [];
+  const activity   = activityRes?.data?.data || [];
+  const formStats  = formStatsRes?.data?.data;
 
   return (
     <div className="space-y-6">
@@ -174,6 +182,62 @@ export default function DashboardPage() {
             </div>
             <ArrowUpRight size={16} className="text-gray-300 group-hover:text-indigo-500 transition-colors" />
           </Link>
+        </div>
+      )}
+
+      {/* Form stats — user only */}
+      {user?.role === 'user' && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            {
+              label: 'Forms Filled',
+              value: formStats?.filledCount ?? '…',
+              icon: CheckCircle2,
+              grad: 'linear-gradient(135deg,#10b981,#34d399)',
+              hover: 'rgb(16 185 129 / .10)',
+              hoverColor: 'text-emerald-500',
+              to: '/forms',
+              state: { filledFilter: 'filled' },
+            },
+            {
+              label: 'Forms Pending',
+              value: formStats?.unfilledCount ?? '…',
+              icon: ClipboardList,
+              grad: 'linear-gradient(135deg,#f59e0b,#fbbf24)',
+              hover: 'rgb(245 158 11 / .10)',
+              hoverColor: 'text-amber-500',
+              to: '/forms',
+              state: { filledFilter: 'unfilled' },
+            },
+            {
+              label: 'My Created Forms',
+              value: formStats?.createdForms ?? '…',
+              icon: FileText,
+              grad: 'linear-gradient(135deg,#6366f1,#818cf8)',
+              hover: 'rgb(99 102 241 / .10)',
+              hoverColor: 'text-indigo-500',
+              to: '/forms',
+              state: { createdBy: 'mine' },
+            },
+          ].map(s => {
+            const Icon = s.icon;
+            return (
+              <Link key={s.label} to={s.to} state={s.state}
+                className="stat-card group transition-all duration-200 border border-gray-100 no-underline"
+                style={{ textDecoration: 'none' }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = `0 4px 16px ${s.hover}`}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = ''}>
+                <div className="stat-icon" style={{ background: s.grad }}>
+                  <Icon size={20} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{s.label}</p>
+                </div>
+                <ArrowUpRight size={16} className={`text-gray-300 group-hover:${s.hoverColor} transition-colors`} />
+              </Link>
+            );
+          })}
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { formsApi, dataApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
@@ -150,12 +151,13 @@ function FilledDataPreview({ form, submission }) {
 export default function FormsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
+  const location = useLocation();
   const isViewer = user?.role === 'viewer';
 
   const [page, setPage]           = useState(1);
   const [search, setSearch]       = useState('');
-  const [createdBy, setCreatedBy] = useState('');
-  const [filledFilter, setFilled] = useState(''); // '' | 'filled' | 'unfilled'
+  const [createdBy, setCreatedBy] = useState(location.state?.createdBy || '');
+  const [filledFilter, setFilled] = useState(location.state?.filledFilter || '');
   const [filling,   setFilling]   = useState(null);
   const [previewing, setPreviewing] = useState(null); // { form, submission }
   const [building,  setBuilding]  = useState(false);

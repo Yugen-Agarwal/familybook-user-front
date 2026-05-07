@@ -28,6 +28,7 @@ export const dataApi = {
   update: (id, data) => api.put(`/data/${id}`, data),
   remove: (id) => api.delete(`/data/${id}`),
   getActivity: (params) => api.get('/data/activity', { params }),
+  getFormStats: () => api.get('/data/form-stats'),
 };
 
 export const formsApi = {
