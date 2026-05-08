@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
@@ -7,7 +8,7 @@ import { authApi } from '../../lib/api';
 import {
   Lock, Mail, Phone, ShieldCheck, Eye, EyeOff,
   KeyRound, MessageSquare, CheckCircle2, ArrowRight,
-  ChevronLeft, RefreshCw, Edit2, User, Users, Save
+  ChevronLeft, RefreshCw, Edit2, User, Users, Save, Camera
 } from 'lucide-react';
 
 function ChangeWithPassword({ onDone }) {
@@ -379,20 +380,67 @@ function EditProfile({ user, onDone }) {
 }
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const { user, setAuth, token } = useAuthStore();
   const [pwMethod, setPwMethod] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
+  const avatarInputRef = useRef(null);
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+
+  const avatarMutation = useMutation({
+    mutationFn: authApi.updateAvatar,
+    onSuccess: ({ data }) => {
+      toast.success('Profile photo updated!');
+      setAuth(token, data.data.user);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to upload photo'),
+  });
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return toast.error('Please select an image file');
+    if (file.size > 500 * 1024) return toast.error('Image must be under 500KB');
+
+    const reader = new FileReader();
+    reader.onload = (ev) => avatarMutation.mutate({ avatar: ev.target.result });
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="space-y-6">
 
       {/* ── Profile card ── */}
       <div className="card flex items-center gap-5">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-black flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#4338ca,#6366f1)', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }}>
-          {initials}
+        {/* Avatar with upload */}
+        <div className="relative flex-shrink-0 group">
+          {/* Image / initials — click opens lightbox if photo exists */}
+          <div
+            className={`w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center text-white text-2xl font-black ${user?.avatar ? 'cursor-zoom-in' : ''}`}
+            style={{ background: user?.avatar ? 'transparent' : 'linear-gradient(135deg,#4338ca,#6366f1)', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }}
+            onClick={() => user?.avatar && setLightbox(true)}
+          >
+            {user?.avatar
+              ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              : initials
+            }
+          </div>
+
+          {/* Camera button — always visible on hover, triggers upload */}
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarMutation.isPending}
+            className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-indigo-600 hover:bg-indigo-700 border-2 border-white flex items-center justify-center shadow-md transition-colors"
+            title="Change photo"
+          >
+            {avatarMutation.isPending
+              ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              : <Camera size={13} className="text-white" />
+            }
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
@@ -410,6 +458,7 @@ export default function ProfilePage() {
               </span>
             )}
           </div>
+          <p className="text-[10px] text-gray-400 mt-1.5">Click photo to view · Camera icon to change · Max 500KB</p>
         </div>
       </div>
 
@@ -561,6 +610,29 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+    {/* Lightbox — rendered via portal to escape overflow:hidden layout */}
+    {lightbox && user?.avatar && createPortal(
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center"
+        style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}
+        onClick={() => setLightbox(false)}
+      >
+        <img
+          src={user.avatar}
+          alt={user.name}
+          className="max-w-[80vw] max-h-[80vh] rounded-2xl shadow-2xl object-contain"
+          onClick={e => e.stopPropagation()}
+        />
+        <button
+          onClick={() => setLightbox(false)}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center text-white text-lg font-bold transition-colors"
+          style={{ background: 'rgba(255,255,255,0.15)' }}
+        >
+          ✕
+        </button>
+      </div>,
+      document.body
+    )}
     </div>
   );
 }

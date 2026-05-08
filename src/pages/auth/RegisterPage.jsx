@@ -59,7 +59,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create account" subtitle="Join Family Book and secure your family's data">
+    <AuthLayout title="Create account" subtitle="Join Family Book and secure your family's data" wide>
       <form onSubmit={handleSubmit(mutate)} className="space-y-4">
 
         <div>

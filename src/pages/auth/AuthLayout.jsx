@@ -2,7 +2,7 @@ import { Shield, Users, Lock } from 'lucide-react';
 import familyBg from '../../assets/family-bg.jpg';
 import logo from '../../assets/familybook.png';
 
-export default function AuthLayout({ title, subtitle, children }) {
+export default function AuthLayout({ title, subtitle, children, wide = false }) {
   return (
     <div className="h-screen flex overflow-hidden selection:bg-indigo-100">
 
@@ -64,7 +64,7 @@ export default function AuthLayout({ title, subtitle, children }) {
 
         {/* Centered form */}
         <div className="flex-1 flex items-center justify-center px-6 py-12">
-          <div className="w-full max-w-[540px]">
+          <div className={`w-full ${wide ? 'max-w-[540px]' : 'max-w-[400px]'}`}>
 
             {/* Heading */}
             <div className="mb-8 text-center">
