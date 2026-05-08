@@ -10,7 +10,7 @@ export const authApi = {
   resendOtp: (data) => api.post('/auth/resend-otp', data),
   changePassword: (data) => api.post('/auth/change-password', data),
   updateProfile: (data) => api.put('/auth/profile', data),
-  updateAvatar:  (data) => api.post('/auth/avatar', data),
+  updateAvatar:  (data) => api.post('/auth/avatar', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
 export const viewerApi = {

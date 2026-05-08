@@ -400,12 +400,19 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return toast.error('Please select an image file');
-    if (file.size > 500 * 1024) return toast.error('Image must be under 500KB');
+    if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2MB');
 
-    const reader = new FileReader();
-    reader.onload = (ev) => avatarMutation.mutate({ avatar: ev.target.result });
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append('avatar', file);
+    avatarMutation.mutate(formData);
   };
+
+  // Resolve avatar URL — local uploads are relative paths, base64 are data URLs
+  const avatarSrc = user?.avatar
+    ? user.avatar.startsWith('data:') || user.avatar.startsWith('http')
+      ? user.avatar
+      : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || ''  }${user.avatar}`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -416,12 +423,12 @@ export default function ProfilePage() {
         <div className="relative flex-shrink-0 group">
           {/* Image / initials — click opens lightbox if photo exists */}
           <div
-            className={`w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center text-white text-2xl font-black ${user?.avatar ? 'cursor-zoom-in' : ''}`}
-            style={{ background: user?.avatar ? 'transparent' : 'linear-gradient(135deg,#4338ca,#6366f1)', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }}
-            onClick={() => user?.avatar && setLightbox(true)}
+            className={`w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center text-white text-2xl font-black ${avatarSrc ? 'cursor-zoom-in' : ''}`}
+            style={{ background: avatarSrc ? 'transparent' : 'linear-gradient(135deg,#4338ca,#6366f1)', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }}
+            onClick={() => avatarSrc && setLightbox(true)}
           >
-            {user?.avatar
-              ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+            {avatarSrc
+              ? <img src={avatarSrc} alt={user.name} className="w-full h-full object-cover" />
               : initials
             }
           </div>
@@ -611,14 +618,14 @@ export default function ProfilePage() {
         )}
       </div>
     {/* Lightbox — rendered via portal to escape overflow:hidden layout */}
-    {lightbox && user?.avatar && createPortal(
+    {lightbox && avatarSrc && createPortal(
       <div
         className="fixed inset-0 z-[9999] flex items-center justify-center"
         style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}
         onClick={() => setLightbox(false)}
       >
         <img
-          src={user.avatar}
+          src={avatarSrc}
           alt={user.name}
           className="max-w-[80vw] max-h-[80vh] rounded-2xl shadow-2xl object-contain"
           onClick={e => e.stopPropagation()}
