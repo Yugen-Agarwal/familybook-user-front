@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -56,8 +56,9 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
   const existingRows = existing?.data?.rows || [{}];
   const [extraCols, setExtraCols] = useState(existing?.data?._extraCols || []);
   const [showAddCol, setShowAddCol] = useState(false);
-  const [newCol, setNewCol] = useState({ label: '', type: 'text', options: '' });
+  const [newCol, setNewCol] = useState({ label: '', key: '', type: 'text', options: '' });
   const [colErrors, setColErrors] = useState({});
+  const colKeyAutoFilledRef = useRef(true);
 
   const { register, control, handleSubmit } = useForm({ defaultValues: { rows: existingRows } });
   const { fields, append, remove } = useFieldArray({ control, name: 'rows' });
@@ -70,15 +71,19 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
   const addCol = () => {
     const errs = {};
     if (!newCol.label.trim()) errs.label = 'Column name is required';
+    if (!newCol.key.trim()) errs.key = 'Key is required';
+    else if (!/^[a-z0-9_]+$/.test(newCol.key)) errs.key = 'Only lowercase letters, numbers & _';
+    else if (allFields.some(f => f.key === newCol.key))
+      errs.key = 'Key already exists';
     if (newCol.type === 'select' && !newCol.options.trim()) errs.options = 'At least one option is required';
     if (Object.keys(errs).length) { setColErrors(errs); return; }
     setColErrors({});
-    const key = newCol.label.toLowerCase().replace(/\s+/g, '_');
     const options = newCol.type === 'select'
       ? newCol.options.split(',').map(o => o.trim()).filter(Boolean)
       : [];
-    setExtraCols(prev => [...prev, { label: newCol.label, key, type: newCol.type, options }]);
-    setNewCol({ label: '', type: 'text', options: '' });
+    setExtraCols(prev => [...prev, { label: newCol.label, key: newCol.key, type: newCol.type, options }]);
+    setNewCol({ label: '', key: '', type: 'text', options: '' });
+    colKeyAutoFilledRef.current = true;
     setShowAddCol(false);
   };
 
@@ -89,10 +94,24 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
   });
 
   const onSubmit = (values) => {
+    // Coerce boolean fields in each row
+    const allCols = [...form.fields, ...extraCols];
+    const rows = values.rows.map(row => {
+      const r = { ...row };
+      allCols.forEach(f => {
+        if (f.type === 'boolean' && r[f.key] !== undefined) {
+          r[f.key] = r[f.key] === 'true' ? true : r[f.key] === 'false' ? false : r[f.key];
+        }
+      });
+      return r;
+    });
+    // Store extra col definitions inside data object, not alongside it
+    const data = { rows };
+    if (extraCols.length > 0) data._extraCols = extraCols;
     mutate({
       formId:   form._id,
       category: form.title.toLowerCase().replace(/\s+/g, '_'),
-      data:     { rows: values.rows, _extraCols: extraCols },
+      data,
     });
   };
 
@@ -166,16 +185,30 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
               <div className="flex-1 min-w-[140px]">
                 <input
                   className={`input text-sm w-full ${colErrors.label ? 'border-red-400 bg-red-50' : ''}`}
-                  placeholder="Column name"
+                  placeholder="Column name  e.g. Bank Name"
                   autoFocus
                   value={newCol.label}
-                  onChange={e => { setNewCol(p => ({ ...p, label: e.target.value })); setColErrors(p => ({ ...p, label: '' })); }}
+                  onChange={e => {
+                    const label = e.target.value;
+                    const autoKey = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                    setNewCol(p => colKeyAutoFilledRef.current ? { ...p, label, key: autoKey } : { ...p, label });
+                    setColErrors(p => ({ ...p, label: '' }));
+                  }}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCol(); } }} />
                 {colErrors.label && <p className="text-red-500 text-xs mt-1">{colErrors.label}</p>}
               </div>
+              <div className="w-28">
+                <input
+                  className={`input text-sm w-full font-mono ${colErrors.key ? 'border-red-400 bg-red-50' : ''}`}
+                  placeholder="key_name"
+                  value={newCol.key}
+                  onChange={e => { colKeyAutoFilledRef.current = false; setNewCol(p => ({ ...p, key: e.target.value })); setColErrors(p => ({ ...p, key: '' })); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCol(); } }} />
+                {colErrors.key && <p className="text-red-500 text-xs mt-1">{colErrors.key}</p>}
+              </div>
               <div className="relative">
                 <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
-                  value={newCol.type} onChange={e => { setNewCol(p => ({ ...p, type: e.target.value, options: '' })); setColErrors({}); }}>
+                  value={newCol.type} onChange={e => { setNewCol(p => ({ ...p, type: e.target.value, options: '' })); setColErrors(p => ({ ...p, options: '' })); }}>
                   {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
                 <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -185,7 +218,7 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
                 style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
                 Add
               </button>
-              <button type="button" onClick={() => { setShowAddCol(false); setColErrors({}); }}
+              <button type="button" onClick={() => { setShowAddCol(false); setColErrors({}); setNewCol({ label: '', key: '', type: 'text', options: '' }); colKeyAutoFilledRef.current = true; }}
                 className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
             </div>
             {newCol.type === 'select' && (
@@ -220,25 +253,47 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
 function RecordForm({ form, existing, onSuccess, isViewer }) {
   const [extraFields, setExtraFields] = useState(existing?.data?._extraFields || []);
   const [showAdd, setShowAdd] = useState(false);
-  const [newField, setNewField] = useState({ label: '', type: 'text', options: '' });
+  const [newField, setNewField] = useState({ label: '', key: '', type: 'text', options: '' });
   const [fieldErrs, setFieldErrs] = useState({});
+  const keyAutoFilledRef = useRef(true); // tracks if key was auto-filled from label
 
   const { register, handleSubmit } = useForm({
     defaultValues: existing?.data || {},
   });
 
+  const handleNewFieldLabelChange = (e) => {
+    const label = e.target.value;
+    setNewField(p => {
+      const autoKey = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      // auto-fill key only if user hasn't manually edited it
+      return keyAutoFilledRef.current ? { ...p, label, key: autoKey } : { ...p, label };
+    });
+    setFieldErrs(p => ({ ...p, label: '' }));
+  };
+
+  const handleNewFieldKeyChange = (e) => {
+    keyAutoFilledRef.current = false; // user is manually editing key
+    setNewField(p => ({ ...p, key: e.target.value }));
+    setFieldErrs(p => ({ ...p, key: '' }));
+  };
+
   const addField = () => {
     const errs = {};
     if (!newField.label.trim()) errs.label = 'Field name is required';
+    if (!newField.key.trim()) errs.key = 'Key is required';
+    else if (!/^[a-z0-9_]+$/.test(newField.key)) errs.key = 'Only lowercase letters, numbers & _';
+    else if ([...form.fields, ...extraFields].some(f => f.key === newField.key))
+      errs.key = 'Key already exists';
     if (newField.type === 'select' && !newField.options.trim()) errs.options = 'At least one option is required';
     if (Object.keys(errs).length) { setFieldErrs(errs); return; }
     setFieldErrs({});
-    const key = '_x_' + newField.label.toLowerCase().replace(/\s+/g, '_');
+    const key = newField.key;
     const options = newField.type === 'select'
       ? newField.options.split(',').map(o => o.trim()).filter(Boolean)
       : [];
     setExtraFields(prev => [...prev, { label: newField.label, key, type: newField.type, options }]);
-    setNewField({ label: '', type: 'text', options: '' });
+    setNewField({ label: '', key: '', type: 'text', options: '' });
+    keyAutoFilledRef.current = true;
     setShowAdd(false);
   };
 
@@ -251,10 +306,20 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
   });
 
   const onSubmit = (values) => {
+    // Coerce boolean fields from string radio values to actual booleans
+    const coerced = { ...values };
+    [...form.fields, ...extraFields].forEach(f => {
+      if (f.type === 'boolean' && coerced[f.key] !== undefined) {
+        coerced[f.key] = coerced[f.key] === 'true' ? true : coerced[f.key] === 'false' ? false : coerced[f.key];
+      }
+    });
+    // Store extra field definitions inside data object, not alongside it
+    const data = { ...coerced };
+    if (extraFields.length > 0) data._extraFields = extraFields;
     mutate({
       formId:   form._id,
       category: form.title.toLowerCase().replace(/\s+/g, '_'),
-      data:     { ...values, _extraFields: extraFields },
+      data,
     });
   };
 
@@ -281,7 +346,7 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
               <div className="flex-1">
                 <FieldInput field={f} name={f.key} register={register} disabled={isViewer} />
               </div>
-              {f.key.startsWith('_x_') && !isViewer && (
+              {extraFields.some(ef => ef.key === f.key) && !isViewer && (
                 <button type="button" onClick={() => removeExtra(f.key)}
                   className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
                   <Trash2 size={14} />
@@ -301,16 +366,25 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
                 <div className="flex-1 min-w-[140px]">
                   <input
                     className={`input text-sm w-full ${fieldErrs.label ? 'border-red-400 bg-red-50' : ''}`}
-                    placeholder="Field name"
+                    placeholder="Field name  e.g. Policy Number"
                     autoFocus
                     value={newField.label}
-                    onChange={e => { setNewField(p => ({ ...p, label: e.target.value })); setFieldErrs(p => ({ ...p, label: '' })); }}
+                    onChange={handleNewFieldLabelChange}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addField(); } }} />
                   {fieldErrs.label && <p className="text-red-500 text-xs mt-1">{fieldErrs.label}</p>}
                 </div>
+                <div className="w-32">
+                  <input
+                    className={`input text-sm w-full font-mono ${fieldErrs.key ? 'border-red-400 bg-red-50' : ''}`}
+                    placeholder="key_name"
+                    value={newField.key}
+                    onChange={handleNewFieldKeyChange}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addField(); } }} />
+                  {fieldErrs.key && <p className="text-red-500 text-xs mt-1">{fieldErrs.key}</p>}
+                </div>
                 <div className="relative">
                   <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
-                    value={newField.type} onChange={e => { setNewField(p => ({ ...p, type: e.target.value, options: '' })); setFieldErrs({}); }}>
+                    value={newField.type} onChange={e => { setNewField(p => ({ ...p, type: e.target.value, options: '' })); setFieldErrs(p => ({ ...p, options: '' })); }}>
                     {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -320,7 +394,7 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
                   style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
                   Add
                 </button>
-                <button type="button" onClick={() => { setShowAdd(false); setFieldErrs({}); }} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                <button type="button" onClick={() => { setShowAdd(false); setFieldErrs({}); setNewField({ label: '', key: '', type: 'text', options: '' }); keyAutoFilledRef.current = true; }} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
               </div>
               {newField.type === 'select' && (
                 <div>
