@@ -257,8 +257,21 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
   const [fieldErrs, setFieldErrs] = useState({});
   const keyAutoFilledRef = useRef(true); // tracks if key was auto-filled from label
 
+  // Normalize existing data: convert boolean values to strings for radio inputs
+  const normalizeForForm = (data) => {
+    if (!data) return {};
+    const allFields = [...form.fields, ...(data._extraFields || [])];
+    const normalized = { ...data };
+    allFields.forEach(f => {
+      if (f.type === 'boolean' && normalized[f.key] !== undefined) {
+        normalized[f.key] = String(normalized[f.key]);
+      }
+    });
+    return normalized;
+  };
+
   const { register, handleSubmit } = useForm({
-    defaultValues: existing?.data || {},
+    defaultValues: normalizeForForm(existing?.data),
   });
 
   const handleNewFieldLabelChange = (e) => {
