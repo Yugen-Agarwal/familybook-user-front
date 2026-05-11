@@ -60,7 +60,21 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
   const [colErrors, setColErrors] = useState({});
   const colKeyAutoFilledRef = useRef(true);
 
-  const { register, control, handleSubmit } = useForm({ defaultValues: { rows: existingRows } });
+  // Normalize rows: convert boolean values to strings for radio inputs
+  const normalizeRows = (rows) => {
+    const booleanKeys = new Set(
+      [...form.fields, ...(existing?.data?._extraCols || [])]
+        .filter(f => f.type === 'boolean')
+        .map(f => f.key)
+    );
+    return rows.map(row => {
+      const r = { ...row };
+      booleanKeys.forEach(k => { if (r[k] !== undefined) r[k] = String(r[k]); });
+      return r;
+    });
+  };
+
+  const { register, control, handleSubmit } = useForm({ defaultValues: { rows: normalizeRows(existingRows) } });
   const { fields, append, remove } = useFieldArray({ control, name: 'rows' });
 
   const allFields = [
