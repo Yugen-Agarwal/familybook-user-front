@@ -6,23 +6,39 @@ import { dataApi } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { Plus, Trash2, Lock, Table2, FileText, ChevronDown, Eye } from 'lucide-react';
 
-const FIELD_TYPES = ['text', 'number', 'date', 'boolean', 'select'];
+const FIELD_TYPES = [
+  { value: 'text',    label: 'Text' },
+  { value: 'number',  label: 'Number' },
+  { value: 'date',    label: 'Date' },
+  { value: 'boolean', label: 'Yes / No' },
+  { value: 'select',  label: 'Dropdown' },
+];
 
 // Single field input
 function FieldInput({ field, name, register, disabled }) {
   if (field.type === 'boolean') {
     return (
-      <div className="flex items-center gap-2">
-        <input type="checkbox" id={name} className="w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-50" disabled={disabled} {...register(name)} />
-        <label htmlFor={name} className="text-sm text-gray-700 cursor-pointer">{field.label}</label>
+      <div className="flex items-center gap-4">
+        <label className={`flex items-center gap-2 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <input type="radio" value="true" disabled={disabled}
+            className="w-4 h-4 accent-emerald-500 cursor-pointer"
+            {...register(name)} />
+          <span className="text-sm font-medium text-gray-700">Yes</span>
+        </label>
+        <label className={`flex items-center gap-2 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <input type="radio" value="false" disabled={disabled}
+            className="w-4 h-4 accent-red-400 cursor-pointer"
+            {...register(name)} />
+          <span className="text-sm font-medium text-gray-700">No</span>
+        </label>
       </div>
     );
   }
-  if (field.type === 'select' && field.options?.length) {
+  if (field.type === 'select') {
     return (
       <select className="input disabled:bg-gray-50 disabled:text-gray-500" disabled={disabled} {...register(name)}>
         <option value="">Select…</option>
-        {field.options.map(o => <option key={o} value={o}>{o}</option>)}
+        {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     );
   }
@@ -40,7 +56,8 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
   const existingRows = existing?.data?.rows || [{}];
   const [extraCols, setExtraCols] = useState(existing?.data?._extraCols || []);
   const [showAddCol, setShowAddCol] = useState(false);
-  const [newCol, setNewCol] = useState({ label: '', type: 'text' });
+  const [newCol, setNewCol] = useState({ label: '', type: 'text', options: '' });
+  const [colErrors, setColErrors] = useState({});
 
   const { register, control, handleSubmit } = useForm({ defaultValues: { rows: existingRows } });
   const { fields, append, remove } = useFieldArray({ control, name: 'rows' });
@@ -51,10 +68,17 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
   ];
 
   const addCol = () => {
-    if (!newCol.label.trim()) return;
+    const errs = {};
+    if (!newCol.label.trim()) errs.label = 'Column name is required';
+    if (newCol.type === 'select' && !newCol.options.trim()) errs.options = 'At least one option is required';
+    if (Object.keys(errs).length) { setColErrors(errs); return; }
+    setColErrors({});
     const key = newCol.label.toLowerCase().replace(/\s+/g, '_');
-    setExtraCols(prev => [...prev, { label: newCol.label, key, type: newCol.type }]);
-    setNewCol({ label: '', type: 'text' });
+    const options = newCol.type === 'select'
+      ? newCol.options.split(',').map(o => o.trim()).filter(Boolean)
+      : [];
+    setExtraCols(prev => [...prev, { label: newCol.label, key, type: newCol.type, options }]);
+    setNewCol({ label: '', type: 'text', options: '' });
     setShowAddCol(false);
   };
 
@@ -137,26 +161,44 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
 
         {/* Add column inline */}
         {showAddCol && (
-          <div className="px-4 py-3 border-t border-gray-100 bg-indigo-50/30 flex items-center gap-2 flex-wrap">
-            <input className="input text-sm flex-1 min-w-[140px]" placeholder="Column name"
-              autoFocus
-              value={newCol.label}
-              onChange={e => setNewCol(p => ({ ...p, label: e.target.value }))}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCol(); } }} />
-            <div className="relative">
-              <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
-                value={newCol.type} onChange={e => setNewCol(p => ({ ...p, type: e.target.value }))}>
-                {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <div className="px-4 py-3 border-t border-gray-100 bg-indigo-50/30 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex-1 min-w-[140px]">
+                <input
+                  className={`input text-sm w-full ${colErrors.label ? 'border-red-400 bg-red-50' : ''}`}
+                  placeholder="Column name"
+                  autoFocus
+                  value={newCol.label}
+                  onChange={e => { setNewCol(p => ({ ...p, label: e.target.value })); setColErrors(p => ({ ...p, label: '' })); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCol(); } }} />
+                {colErrors.label && <p className="text-red-500 text-xs mt-1">{colErrors.label}</p>}
+              </div>
+              <div className="relative">
+                <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
+                  value={newCol.type} onChange={e => { setNewCol(p => ({ ...p, type: e.target.value, options: '' })); setColErrors({}); }}>
+                  {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+                <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+              <button type="button" onClick={addCol}
+                className="px-3 py-2 rounded-xl text-xs font-semibold text-white"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
+                Add
+              </button>
+              <button type="button" onClick={() => { setShowAddCol(false); setColErrors({}); }}
+                className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
             </div>
-            <button type="button" onClick={addCol}
-              className="px-3 py-2 rounded-xl text-xs font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
-              Add
-            </button>
-            <button type="button" onClick={() => setShowAddCol(false)}
-              className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+            {newCol.type === 'select' && (
+              <div>
+                <input
+                  className={`input text-xs w-full ${colErrors.options ? 'border-red-400 bg-red-50' : ''}`}
+                  placeholder="Options comma-separated  e.g. BTC,ETH,SOL"
+                  value={newCol.options}
+                  onChange={e => { setNewCol(p => ({ ...p, options: e.target.value })); setColErrors(p => ({ ...p, options: '' })); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCol(); } }} />
+                {colErrors.options && <p className="text-red-500 text-xs mt-1">{colErrors.options}</p>}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -178,17 +220,25 @@ function TableForm({ form, existing, onSuccess, isViewer }) {
 function RecordForm({ form, existing, onSuccess, isViewer }) {
   const [extraFields, setExtraFields] = useState(existing?.data?._extraFields || []);
   const [showAdd, setShowAdd] = useState(false);
-  const [newField, setNewField] = useState({ label: '', type: 'text' });
+  const [newField, setNewField] = useState({ label: '', type: 'text', options: '' });
+  const [fieldErrs, setFieldErrs] = useState({});
 
   const { register, handleSubmit } = useForm({
     defaultValues: existing?.data || {},
   });
 
   const addField = () => {
-    if (!newField.label.trim()) return;
+    const errs = {};
+    if (!newField.label.trim()) errs.label = 'Field name is required';
+    if (newField.type === 'select' && !newField.options.trim()) errs.options = 'At least one option is required';
+    if (Object.keys(errs).length) { setFieldErrs(errs); return; }
+    setFieldErrs({});
     const key = '_x_' + newField.label.toLowerCase().replace(/\s+/g, '_');
-    setExtraFields(prev => [...prev, { label: newField.label, key, type: newField.type }]);
-    setNewField({ label: '', type: 'text' });
+    const options = newField.type === 'select'
+      ? newField.options.split(',').map(o => o.trim()).filter(Boolean)
+      : [];
+    setExtraFields(prev => [...prev, { label: newField.label, key, type: newField.type, options }]);
+    setNewField({ label: '', type: 'text', options: '' });
     setShowAdd(false);
   };
 
@@ -246,25 +296,43 @@ function RecordForm({ form, existing, onSuccess, isViewer }) {
       {!isViewer && (
         <>
           {showAdd ? (
-            <div className="flex items-center gap-2 p-3 bg-indigo-50/40 rounded-xl border border-indigo-100 flex-wrap">
-              <input className="input text-sm flex-1 min-w-[140px]" placeholder="Field name"
-                autoFocus
-                value={newField.label}
-                onChange={e => setNewField(p => ({ ...p, label: e.target.value }))}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addField(); } }} />
-              <div className="relative">
-                <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
-                  value={newField.type} onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}>
-                  {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <div className="p-3 bg-indigo-50/40 rounded-xl border border-indigo-100 space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex-1 min-w-[140px]">
+                  <input
+                    className={`input text-sm w-full ${fieldErrs.label ? 'border-red-400 bg-red-50' : ''}`}
+                    placeholder="Field name"
+                    autoFocus
+                    value={newField.label}
+                    onChange={e => { setNewField(p => ({ ...p, label: e.target.value })); setFieldErrs(p => ({ ...p, label: '' })); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addField(); } }} />
+                  {fieldErrs.label && <p className="text-red-500 text-xs mt-1">{fieldErrs.label}</p>}
+                </div>
+                <div className="relative">
+                  <select className="input text-sm w-28 appearance-none pr-6 cursor-pointer"
+                    value={newField.type} onChange={e => { setNewField(p => ({ ...p, type: e.target.value, options: '' })); setFieldErrs({}); }}>
+                    {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+                <button type="button" onClick={addField}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold text-white"
+                  style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
+                  Add
+                </button>
+                <button type="button" onClick={() => { setShowAdd(false); setFieldErrs({}); }} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
               </div>
-              <button type="button" onClick={addField}
-                className="px-3 py-2 rounded-xl text-xs font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)' }}>
-                Add
-              </button>
-              <button type="button" onClick={() => setShowAdd(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+              {newField.type === 'select' && (
+                <div>
+                  <input
+                    className={`input text-xs w-full ${fieldErrs.options ? 'border-red-400 bg-red-50' : ''}`}
+                    placeholder="Options comma-separated  e.g. BTC,ETH,SOL"
+                    value={newField.options}
+                    onChange={e => { setNewField(p => ({ ...p, options: e.target.value })); setFieldErrs(p => ({ ...p, options: '' })); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addField(); } }} />
+                  {fieldErrs.options && <p className="text-red-500 text-xs mt-1">{fieldErrs.options}</p>}
+                </div>
+              )}
             </div>
           ) : (
             <button type="button" onClick={() => setShowAdd(true)}

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { formsApi } from '../../lib/api';
@@ -18,8 +18,8 @@ const FORM_TYPES = [
   { value: 'record', icon: FileText, title: 'Record', desc: 'Single entry — like a document',   grad: 'linear-gradient(135deg,#10b981,#34d399)' },
 ];
 
-function FieldRow({ index, total, register, errors, remove, move, watch }) {
-  const type        = watch(`fields.${index}.type`);
+function FieldRow({ index, total, control, register, errors, remove, move, fieldType }) {
+  const type = useWatch({ control, name: `fields.${index}.type`, defaultValue: fieldType ?? 'text' });
   const fieldErrors = errors?.fields?.[index];
 
   return (
@@ -76,9 +76,13 @@ function FieldRow({ index, total, register, errors, remove, move, watch }) {
       </div>
 
       {type === 'select' && (
-        <div className="pl-10">
-          <input className="input text-xs" placeholder="Options comma-separated  e.g. BTC,ETH,SOL"
-            {...register(`fields.${index}.options`)} />
+        <div className="pl-10 space-y-1">
+          <input className={`input text-xs w-full ${fieldErrors?.options ? 'border-red-400 bg-red-50' : ''}`}
+            placeholder="Options comma-separated  e.g. BTC,ETH,SOL"
+            {...register(`fields.${index}.options`, {
+              validate: v => (!v || !v.trim()) ? 'At least one option required for Dropdown' : true,
+            })} />
+          {fieldErrors?.options && <p className="text-red-500 text-xs">{fieldErrors.options.message}</p>}
         </div>
       )}
     </div>
@@ -176,11 +180,12 @@ export default function UserFormBuilder({ initial, onSuccess }) {
               key={f.id}
               index={i}
               total={fields.length}
+              control={control}
               register={register}
               errors={errors}
               remove={remove}
               move={move}
-              watch={watch}
+              fieldType={f.type}
             />
           ))}
           {fields.length === 0 && (
