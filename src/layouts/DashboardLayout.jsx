@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 const navItems = [
   { to: '/dashboard', label: 'Dashboard',  icon: LayoutDashboard, roles: ['user', 'viewer', 'owner'] },
   { to: '/forms',     label: 'Forms',       icon: FileText,        roles: ['user', 'viewer', 'owner'] },
+  { to: '/book',      label: 'Family Book', icon: BookOpen,        roles: ['user', 'viewer', 'owner'] },
   { to: '/viewers',   label: 'Nominees',    icon: Users,           roles: ['user', 'owner'] },
   { to: '/activity',  label: 'Activity',    icon: Activity,        roles: ['user', 'owner'] },
 ];
@@ -126,6 +127,7 @@ export default function DashboardLayout() {
   const routeLabel = {
     '/dashboard': 'Dashboard',
     '/forms':     'Forms',
+    '/book':      'Family Book',
     '/viewers':   'Viewers',
     '/activity':  'Activity',
     '/profile':   'Profile',

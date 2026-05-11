@@ -8,8 +8,9 @@ import { authApi } from '../../lib/api';
 import {
   Lock, Mail, Phone, ShieldCheck, Eye, EyeOff,
   KeyRound, MessageSquare, CheckCircle2, ArrowRight,
-  ChevronLeft, RefreshCw, Edit2, User, Users, Save, Camera
+  ChevronLeft, RefreshCw, Edit2, User, Users, Save, Camera, Trash2, BookOpen
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function ChangeWithPassword({ onDone }) {
   const [showCur, setShowCur] = useState(false);
@@ -380,10 +381,11 @@ function EditProfile({ user, onDone }) {
 }
 
 export default function ProfilePage() {
-  const { user, setAuth, token } = useAuthStore();
+  const { user, setAuth, token, logout } = useAuthStore();
   const [pwMethod, setPwMethod] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [lightbox, setLightbox] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const avatarInputRef = useRef(null);
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
@@ -394,6 +396,15 @@ export default function ProfilePage() {
       setAuth(token, data.data.user);
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to upload photo'),
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: authApi.deleteAccount,
+    onSuccess: () => {
+      toast.success('Account deleted');
+      logout();
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to delete account'),
   });
 
   const handleAvatarChange = (e) => {
@@ -617,7 +628,65 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
-    {/* Lightbox — rendered via portal to escape overflow:hidden layout */}
+    {/* ── Book Preview + Danger Zone ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+        {/* Book Preview */}
+        <Link to="/book"
+          className="card flex items-center gap-4 no-underline group hover:-translate-y-0.5 transition-transform"
+          style={{ textDecoration: 'none', boxShadow: '0 2px 12px rgba(99,102,241,0.08)' }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
+            <BookOpen size={22} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">Family Book Preview</p>
+            <p className="text-xs text-gray-400 mt-0.5">View all your filled data in a beautiful book format</p>
+          </div>
+          <ArrowRight size={16} className="text-gray-300 group-hover:text-indigo-500 transition-colors" />
+        </Link>
+
+        {/* Danger Zone */}
+        {user?.role !== 'viewer' && (
+          <div className="card border border-red-100">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+                <Trash2 size={16} className="text-red-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Danger Zone</p>
+                <p className="text-xs text-gray-400">Irreversible account actions</p>
+              </div>
+            </div>
+            {!showDeleteConfirm ? (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition-colors">
+                Delete My Account
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                  Your account will be deactivated. This action cannot be undone by you.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => deleteAccountMutation.mutate()}
+                    disabled={deleteAccountMutation.isPending}
+                    className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 transition-colors">
+                    {deleteAccountMutation.isPending ? 'Deleting…' : 'Yes, Delete'}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     {lightbox && avatarSrc && createPortal(
       <div
         className="fixed inset-0 z-[9999] flex items-center justify-center"

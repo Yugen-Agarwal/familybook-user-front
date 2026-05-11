@@ -11,6 +11,7 @@ export const authApi = {
   changePassword: (data) => api.post('/auth/change-password', data),
   updateProfile: (data) => api.put('/auth/profile', data),
   updateAvatar:  (data) => api.post('/auth/avatar', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteAccount: () => api.delete('/auth/account'),
 };
 
 export const viewerApi = {
@@ -30,6 +31,7 @@ export const dataApi = {
   remove: (id) => api.delete(`/data/${id}`),
   getActivity: (params) => api.get('/data/activity', { params }),
   getFormStats: () => api.get('/data/form-stats'),
+  getBook: () => api.get('/data/book'),
 };
 
 export const formsApi = {

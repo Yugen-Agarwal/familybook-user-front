@@ -13,6 +13,7 @@ import ViewersPage from './pages/viewers/ViewersPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import ActivityPage from './pages/activity/ActivityPage';
 import LandingPage from './pages/public/LandingPage';
+import BookPage from './pages/book/BookPage';
 import TermsConditions from './pages/public/TermsConditions';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
 
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="viewers" element={<ViewersPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="book" element={<BookPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/home" replace />} />
