@@ -47,6 +47,7 @@ function FieldInput({ field, name, register, disabled }) {
       disabled={disabled}
       type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
       placeholder={disabled ? 'No data' : `Enter ${field.label.toLowerCase()}`}
+      onKeyDown={field.type === 'date' ? (e) => e.preventDefault() : undefined}
       {...register(name)} />
   );
 }

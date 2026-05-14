@@ -87,7 +87,9 @@ function FilledDataPreview({ form, submission }) {
   // Table form — rows array
   if (form?.formType === 'table') {
     const rows = data.rows || [];
-    const cols = fields.map(f => ({ key: f.key, label: f.label }));
+    const extraCols = data._extraCols || [];
+    const allCols = [...fields, ...extraCols];
+    const cols = allCols.map(f => ({ key: f.key, label: f.label }));
     return (
       <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
         {rows.length === 0 ? (
@@ -126,12 +128,15 @@ function FilledDataPreview({ form, submission }) {
     );
   }
 
+  const extraFields = data._extraFields || [];
+  const allFields = [...fields, ...extraFields];
+
   // Record form — key-value
   return (
     <div className="space-y-0 max-h-[65vh] overflow-y-auto pr-1">
-      {fields.length === 0 ? (
+      {allFields.length === 0 ? (
         <p className="text-gray-400 text-sm text-center py-8">No fields defined.</p>
-      ) : fields.map((f, i) => (
+      ) : allFields.map((f, i) => (
         <div key={f.key}
           className={`flex items-center justify-between gap-6 px-4 py-3 ${i % 2 === 0 ? 'bg-gray-50/60' : 'bg-white'} rounded-xl`}>
           <p className="text-sm font-semibold text-gray-500 flex-shrink-0 min-w-[140px]">{f.label}</p>
