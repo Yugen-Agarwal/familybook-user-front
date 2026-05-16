@@ -184,7 +184,7 @@ export default function FormsPage() {
 
   const { data: submissionsRes, isLoading: isLoadingSubmissions } = useQuery({
     queryKey: ['my-submissions'],
-    queryFn: () => dataApi.getAll({ limit: 200 }),
+    queryFn: () => dataApi.getAll({ limit: 1000 }),
   });
 
   const pagination = formsRes?.data?.pagination;
@@ -316,7 +316,9 @@ export default function FormsPage() {
         </div>
       )}
 
-      <Pagination page={page} pages={pagination?.pages || 1} total={pagination?.total} onPage={setPage} />
+      {pagination?.pages > 1 && (
+        <Pagination page={page} pages={pagination?.pages || 1} total={pagination?.total} onPage={setPage} />
+      )}
 
       {/* Filled data preview */}
       <Modal open={!!previewing} onClose={() => setPreviewing(null)}

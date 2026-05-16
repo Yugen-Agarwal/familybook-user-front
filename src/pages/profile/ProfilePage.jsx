@@ -105,12 +105,13 @@ function ChangeWithPassword({ onDone }) {
 function ChangeWithOTP({ user, onDone }) {
   const hasBoth   = !!(user?.mobile && user?.email);
   const [channel, setChannel]     = useState(user?.mobile ? 'mobile' : 'email');
-  const [step, setStep]           = useState('send');
+  const [step, setStep]           = useState('send'); // 'send' | 'verify' | 'reset'
   const [showNew, setShowNew]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [timer, setTimer]         = useState(0);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, trigger, formState: { errors } } = useForm();
   const newPassword = watch('newPassword', '');
+  const otpValue = watch('otp', '');
 
   useEffect(() => {
     let interval;
@@ -124,6 +125,15 @@ function ChangeWithOTP({ user, onDone }) {
     onError:   (err) => toast.error(err.response?.data?.message || 'Failed to send OTP'),
   });
 
+  const verifyMutation = useMutation({
+    mutationFn: (otp) => authApi.verifyOtp({ userId: user?.id, otp, purpose: 'reset' }),
+    onSuccess: () => {
+      setStep('reset');
+      toast.success('OTP verified!');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Verification failed'),
+  });
+
   const resendMutation = useMutation({
     mutationFn: () => authApi.resendOtp({ userId: user?.id, purpose: 'reset' }),
     onSuccess: () => { toast.success('New OTP sent'); setTimer(30); },
@@ -131,7 +141,11 @@ function ChangeWithOTP({ user, onDone }) {
   });
 
   const resetMutation = useMutation({
-    mutationFn: authApi.resetPassword,
+    mutationFn: (data) => authApi.resetPassword({ 
+      userId: user?.id, 
+      otp: otpValue,
+      newPassword: data.newPassword 
+    }),
     onSuccess: () => { toast.success('Password changed!'); onDone(); },
     onError:   (err) => toast.error(err.response?.data?.message || 'Failed'),
   });
@@ -141,25 +155,34 @@ function ChangeWithOTP({ user, onDone }) {
     sendMutation.mutate(payload);
   };
 
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    const isValid = await trigger('otp');
+    if (isValid) verifyMutation.mutate(otpValue);
+  };
+
+  const handleReset = (data) => {
+    if (!user?.id || !otpValue) {
+      toast.error('Session expired. Please start again.');
+      onDone();
+      return;
+    }
+    resetMutation.mutate(data);
+  };
+
   if (step === 'send') return (
     <div className="space-y-4">
-
-      {/* Channel selector — only shown when user has both */}
       {hasBoth ? (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Send OTP via</p>
           <div className="grid grid-cols-2 gap-3">
-            {/* Mobile option */}
-            <button
-              type="button"
-              onClick={() => setChannel('mobile')}
+            <button type="button" onClick={() => setChannel('mobile')}
               className="flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-150 text-left"
               style={{
                 borderColor:     channel === 'mobile' ? '#6366f1' : '#e5e7eb',
                 backgroundColor: channel === 'mobile' ? '#eef2ff' : '#fff',
                 boxShadow:       channel === 'mobile' ? '0 0 0 3px rgba(99,102,241,0.12)' : '0 1px 3px rgba(0,0,0,0.05)',
-              }}
-            >
+              }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: channel === 'mobile' ? 'linear-gradient(135deg,#6366f1,#818cf8)' : '#f3f4f6' }}>
                 <Phone size={15} style={{ color: channel === 'mobile' ? '#fff' : '#9ca3af' }} />
@@ -168,25 +191,14 @@ function ChangeWithOTP({ user, onDone }) {
                 <p className="text-xs font-bold" style={{ color: channel === 'mobile' ? '#4338ca' : '#374151' }}>Mobile</p>
                 <p className="text-[11px] text-gray-400 truncate">{user.mobile}</p>
               </div>
-              {channel === 'mobile' && (
-                <div className="ml-auto w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: '#6366f1' }}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                </div>
-              )}
             </button>
-
-            {/* Email option */}
-            <button
-              type="button"
-              onClick={() => setChannel('email')}
+            <button type="button" onClick={() => setChannel('email')}
               className="flex items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-150 text-left"
               style={{
                 borderColor:     channel === 'email' ? '#6366f1' : '#e5e7eb',
                 backgroundColor: channel === 'email' ? '#eef2ff' : '#fff',
                 boxShadow:       channel === 'email' ? '0 0 0 3px rgba(99,102,241,0.12)' : '0 1px 3px rgba(0,0,0,0.05)',
-              }}
-            >
+              }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: channel === 'email' ? 'linear-gradient(135deg,#6366f1,#818cf8)' : '#f3f4f6' }}>
                 <Mail size={15} style={{ color: channel === 'email' ? '#fff' : '#9ca3af' }} />
@@ -195,17 +207,10 @@ function ChangeWithOTP({ user, onDone }) {
                 <p className="text-xs font-bold" style={{ color: channel === 'email' ? '#4338ca' : '#374151' }}>Email</p>
                 <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
               </div>
-              {channel === 'email' && (
-                <div className="ml-auto w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: '#6366f1' }}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                </div>
-              )}
             </button>
           </div>
         </div>
       ) : (
-        /* Single channel — just show info */
         <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-100 px-4 py-3 rounded-xl">
           <ShieldCheck size={15} className="text-indigo-500 mt-0.5 flex-shrink-0" />
           <div className="text-xs text-indigo-700">
@@ -217,14 +222,10 @@ function ChangeWithOTP({ user, onDone }) {
           </div>
         </div>
       )}
-
       <div className="flex gap-3">
-        <button
-          onClick={handleSend}
-          disabled={sendMutation.isPending}
+        <button onClick={handleSend} disabled={sendMutation.isPending}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}
-        >
+          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
           {sendMutation.isPending ? 'Sending…' : <><ArrowRight size={15} /> Send OTP</>}
         </button>
         <button className="btn-secondary" onClick={onDone}>Cancel</button>
@@ -232,8 +233,8 @@ function ChangeWithOTP({ user, onDone }) {
     </div>
   );
 
-  return (
-    <form onSubmit={handleSubmit(d => resetMutation.mutate({ userId: user?.id, otp: d.otp, newPassword: d.newPassword }))} className="space-y-4">
+  if (step === 'verify') return (
+    <form onSubmit={handleVerify} className="space-y-4">
       <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3.5 py-2.5 rounded-xl">
         <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />
         <p className="text-xs text-emerald-700">
@@ -247,16 +248,36 @@ function ChangeWithOTP({ user, onDone }) {
             <RefreshCw size={10} className="animate-spin" /> Resend in {timer}s
           </span>}
         </div>
-        <input className="input text-center tracking-[.5em] font-bold text-xl" maxLength={6} placeholder="000000"
-          {...register('otp', { required: true, minLength: 6 })} />
+        <input className="input text-center tracking-[.5em] font-bold text-xl" maxLength={6} placeholder="000000" autoFocus
+          {...register('otp', { required: 'OTP is required', pattern: { value: /^\d{6}$/, message: 'Must be 6 digits' } })} />
+        {errors.otp && <p className="text-red-500 text-[10px] mt-1">{errors.otp.message}</p>}
+      </div>
+      <div className="flex gap-3">
+        <button type="submit" disabled={verifyMutation.isPending}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
+          style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
+          {verifyMutation.isPending ? 'Verifying…' : <><ArrowRight size={15} /> Verify OTP</>}
+        </button>
+        <button type="button" className="btn-secondary" onClick={() => resendMutation.mutate()} disabled={resendMutation.isPending || timer > 0}>
+          {resendMutation.isPending ? <RefreshCw size={14} className="animate-spin" /> : 'Resend OTP'}
+        </button>
+      </div>
+    </form>
+  );
+
+  return (
+    <form onSubmit={handleSubmit(handleReset)} className="space-y-4">
+      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3.5 py-2.5 rounded-xl">
+        <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />
+        <p className="text-xs text-emerald-700 font-medium">OTP Verified! Set your new password.</p>
       </div>
       <div>
         <label className="label">New password</label>
         <div className="relative">
-          <input className="input pr-11" type={showNew ? 'text' : 'password'} placeholder="Min 8 chars, uppercase, num & symbol"
+          <input className="input pr-11" type={showNew ? 'text' : 'password'} placeholder="Min 8 chars, uppercase, num & symbol" autoFocus
             {...register('newPassword', { 
-              required: true, 
-              minLength: 8,
+              required: 'Required', 
+              minLength: { value: 8, message: 'Min 8 characters' },
               validate: {
                 uppercase: v => /[A-Z]/.test(v) || 'One uppercase required',
                 number: v => /[0-9]/.test(v) || 'One number required',
@@ -271,7 +292,6 @@ function ChangeWithOTP({ user, onDone }) {
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
             {[
               { label: '8+ chars',   ok: newPassword.length >= 8 },
-              { label: 'Lowercase',  ok: /[a-z]/.test(newPassword) },
               { label: 'Uppercase',  ok: /[A-Z]/.test(newPassword) },
               { label: 'Number',     ok: /\d/.test(newPassword) },
               { label: 'Special',    ok: /[^a-zA-Z0-9]/.test(newPassword) },
@@ -290,7 +310,7 @@ function ChangeWithOTP({ user, onDone }) {
         <div className="relative">
           <input className="input pr-11" type={showConfirm ? 'text' : 'password'} placeholder="Repeat new password"
             {...register('confirm', { 
-              required: true,
+              required: 'Required',
               validate: v => v === watch('newPassword') || 'Passwords do not match' 
             })} />
           <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -305,14 +325,7 @@ function ChangeWithOTP({ user, onDone }) {
           style={{ background: 'linear-gradient(135deg,#6366f1,#818cf8)', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
           {resetMutation.isPending ? 'Saving…' : <><CheckCircle2 size={15} /> Change Password</>}
         </button>
-        <button 
-          type="button" 
-          className="btn-secondary flex items-center gap-2" 
-          onClick={() => resendMutation.mutate()}
-          disabled={resendMutation.isPending || timer > 0}
-        >
-          {resendMutation.isPending ? <RefreshCw size={14} className="animate-spin" /> : 'Resend OTP'}
-        </button>
+        <button type="button" className="btn-secondary" onClick={() => setStep('verify')}>Back</button>
       </div>
     </form>
   );

@@ -134,7 +134,7 @@ export default function ActivityPage() {
       <div className="table-wrapper">
         {isLoading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
-        ) : (
+        ) : logs.length > 0 ? (
           <table className="w-full">
             <thead>
               <tr>
@@ -168,15 +168,18 @@ export default function ActivityPage() {
                   </td>
                 </tr>
               ))}
-              {logs.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="text-center py-14 text-gray-400 text-sm">
-                    {hasFilters ? 'No logs match your filters' : 'No activity yet'}
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
+        ) : (
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search size={24} className="text-gray-300" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">No activity found</h3>
+            <p className="text-xs text-gray-400 max-w-[200px] mx-auto">
+              {hasFilters ? 'No logs match your current filters' : 'No activity logs recorded yet'}
+            </p>
+          </div>
         )}
       </div>
 
