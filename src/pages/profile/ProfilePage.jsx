@@ -354,7 +354,10 @@ function EditProfile({ user, onDone }) {
         <div className="relative">
           <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input className="input pl-9 py-2 text-sm" placeholder="Your Name"
-            {...register('name', { required: 'Name is required', minLength: 2 })} />
+            {...register('name', { 
+              required: 'Name is required', 
+              minLength: { value: 2, message: 'Name must be at least 2 characters' } 
+            })} />
         </div>
         {errors.name && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.name.message}</p>}
       </div>
@@ -363,9 +366,16 @@ function EditProfile({ user, onDone }) {
         <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 block">Email Address</label>
         <div className="relative">
           <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input className="input pl-9 py-2 text-sm" type="email" placeholder="you@example.com"
-            {...register('email')} />
+          <input className="input pl-9 py-2 text-sm" placeholder="you@example.com"
+            {...register('email', { 
+              required: 'Email is required',
+              pattern: { 
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, 
+                message: 'Enter a valid email address' 
+              } 
+            })} />
         </div>
+        {errors.email && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.email.message}</p>}
       </div>
 
       <div>
@@ -374,7 +384,8 @@ function EditProfile({ user, onDone }) {
           <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input className="input pl-9 py-2 text-sm" placeholder="10-digit number" maxLength="10"
             {...register('mobile', {
-              pattern: { value: /^\d{10}$/, message: 'Must be 10 digits' }
+              required: 'Mobile number is required',
+              pattern: { value: /^\d{10}$/, message: 'Must be exactly 10 digits' }
             })}
             onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); }} />
         </div>

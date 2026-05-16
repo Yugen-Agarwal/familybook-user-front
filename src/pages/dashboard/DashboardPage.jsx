@@ -120,6 +120,7 @@ export default function DashboardPage() {
                 type="date"
                 value={startDate}
                 max={endDate || undefined}
+                onKeyDown={(e) => e.preventDefault()}
                 onChange={e => setStartDate(e.target.value)}
                 className="input py-1.5 text-sm w-auto"
                 style={{ minWidth: 140 }}
@@ -131,6 +132,7 @@ export default function DashboardPage() {
                 type="date"
                 value={endDate}
                 min={startDate || undefined}
+                onKeyDown={(e) => e.preventDefault()}
                 onChange={e => setEndDate(e.target.value)}
                 className="input py-1.5 text-sm w-auto"
                 style={{ minWidth: 140 }}

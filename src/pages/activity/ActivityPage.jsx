@@ -105,6 +105,7 @@ export default function ActivityPage() {
               style={{ color: startDate ? '#4338ca' : '#9ca3af', minWidth: 110 }}
               value={startDate}
               max={endDate || undefined}
+              onKeyDown={(e) => e.preventDefault()}
               onChange={e => { setStartDate(e.target.value); setPage(1); }}
             />
             <span className="text-gray-300 text-sm font-medium">→</span>
@@ -114,6 +115,7 @@ export default function ActivityPage() {
               style={{ color: endDate ? '#4338ca' : '#9ca3af', minWidth: 110 }}
               value={endDate}
               min={startDate || undefined}
+              onKeyDown={(e) => e.preventDefault()}
               onChange={e => { setEndDate(e.target.value); setPage(1); }}
             />
           </div>
